@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Arc\" />
+    <None Remove="Physical\" />
+    <None Remove="Simulation\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Arc\" />
+    <Folder Include="Physical\" />
+    <Folder Include="Simulation\" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Research.ArcSim.Modeling\Research.ArcSim.Modeling.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Handler\Research.ArcSim.Handler.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Statistics\Research.ArcSim.Statistics.csproj" />
+  </ItemGroup>
+</Project>

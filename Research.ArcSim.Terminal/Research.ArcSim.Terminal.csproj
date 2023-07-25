@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Research.ArcSim.Modeling\Research.ArcSim.Modeling.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Builder\Research.ArcSim.Builder.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Samples\Research.ArcSim.Samples.csproj" />
+    <ProjectReference Include="..\Rsearch.ArcSim.Simulator\Rsearch.ArcSim.Simulator.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Allocator\Research.ArcSim.Allocator.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Handler\Research.ArcSim.Handler.csproj" />
+  </ItemGroup>
+</Project>
