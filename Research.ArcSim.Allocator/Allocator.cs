@@ -9,8 +9,10 @@ namespace Research.ArcSim.Allocator;
 public class Allocator
 {
     private const int hour_Millisec = 60 * 60 * 1000;
-    private const int GB_MB = 1000;
-    private const int GB_KB = 1000 * 1000;
+    private const int GB_MB = 1024;
+    private const int MB_KB = 1024;
+    private const int GB_KB = GB_MB * MB_KB;
+    public static Dictionary<string, ComputingNode> Configs = new();
 
     private SimulationStrategy strategy;
     private CostProfile costProfile;
@@ -19,6 +21,29 @@ public class Allocator
 
     public double CurrentCost { get; set; }
     public static Allocator Instance { get; private set; }
+
+    static Allocator()
+    {
+        //Based on this (Azure Premuim Plan for Azure Functions): https://azure.microsoft.com/en-us/pricing/calculator/?service=functions
+        Configs.Add("Light", new ComputingNode
+        {
+            vCpu = 1,
+            MemoryMB = 3.5 * GB_MB, //3.5GB
+            BandwidthKBPerSec = 12.5 * MB_KB //100Mbps
+        });
+        Configs.Add("Standard", new ComputingNode
+        {
+            vCpu = 2,
+            MemoryMB = 7 * GB_MB, //3.5GB
+            BandwidthKBPerSec = 12.5 * MB_KB //100Mbps
+        });
+        Configs.Add("Strong", new ComputingNode
+        {
+            vCpu = 4,
+            MemoryMB = 14 * GB_MB, //3.5GB
+            BandwidthKBPerSec = 12.5 * MB_KB //100Mbps
+        });
+    }
 
     public static void Create(SimulationStrategy strategy, CostProfile costProfile,
         LogicalImplementation implementation)
@@ -29,37 +54,34 @@ public class Allocator
         Instance.implementation = implementation;
     }
 
-    public ComputingNode Allocate(Activity request)
+    public ComputingNode Allocate(Activity servingActivity, Activity requestingActivity)
     {
-        var nodeConfig = GetComponentExecProfile(request.Definition.Component);
-        var execTime = request.Definition.ExecutionProfile.PP.DemandMilliCpuSec / nodeConfig.vCpu;
+        var node = AllocateNode(servingActivity.Definition.Component);
+        var execTime = node.EstimateProcessingTimeMillisec(servingActivity, requestingActivity);
 
-        if (request.Definition.ExecutionProfile.MP.DemandMB > nodeConfig.MemoryMB)
-        {
-            execTime *= request.Definition.ExecutionProfile.MP.TrashingFactor *
-                request.Definition.ExecutionProfile.MP.DemandMB /
-                nodeConfig.MemoryMB;
-        }
-        var execCost = nodeConfig.vCpu * execTime * costProfile.CpuCostvCpuSec / 1000 +
-            nodeConfig.MemoryMB * execTime * costProfile.MemoryCostPerGBHour / GB_MB / hour_Millisec +
-            request.Definition.ExecutionProfile.BP.DemandKB * costProfile.BandwidthCostPerGB / GB_KB;
+
+        var execCost = node.vCpu * execTime * costProfile.vCpuPerHour / hour_Millisec +
+            node.MemoryMB * execTime * costProfile.MemoryGBPerHour / GB_MB / hour_Millisec;
+
+        if (requestingActivity.Definition.Component != null) //External activity such as internet
+            execCost += servingActivity.Definition.ExecutionProfile.BP.DemandKB * costProfile.BandwidthCostPerGB / GB_KB;
 
         if (CurrentCost + execCost > strategy.TotalCost)
         {
-            Simulation.Instance.Terminate("Max Cost Research", request);
+            Simulation.Instance.Terminate("Max Cost Research", servingActivity);
             return null;
         }
         else
         {
             CurrentCost += execCost;
-            var computingNode = new ComputingNode(nodeConfig, request.Definition.Component);
+
             Allocations.Add(new Allocation
             {
-                ComputingNode = computingNode,
+                ComputingNode = node,
                 From = Simulation.Instance.Now
             });
 
-            return computingNode;
+            return node;
         }
     }
 
@@ -68,14 +90,31 @@ public class Allocator
         Allocations.First(a => a.ComputingNode == completionEvent.Node).To = Simulation.Instance.Now;
     }
 
-    private NodeConfig GetComponentExecProfile(Component component)
+    private ComputingNode AllocateNode(Component component)
     {
-        return new NodeConfig
+        var totalProcessingRate_vCput_Secs = component.Activities.Sum(a => (double)a.ExecutionProfile.PP.DemandMilliCpuSec / 1000);
+
+        //Assuming we use a vCPU that allows the task to finish processing in 1s. The highest the vCPU, the faster it takes to process
+        //so one could think allocating strong is the most cost effective. But the time it takes for CPU independent tasks such as
+        //network tranfer or disk access normally dominate the processing time so it is best to select a vCPU based on demand.
+        ComputingNode config = null;
+
+        if (totalProcessingRate_vCput_Secs <= 1)
+            config = Configs["Light"];
+        else if (totalProcessingRate_vCput_Secs <= 2)
+            config = Configs["Standard"];
+        else
+            config = Configs["Strong"];
+
+        var node = new ComputingNode
         {
-            vCpu = component.Activities.Sum(a => (double)a.ExecutionProfile.PP.DemandMilliCpuSec / 1000),
-            BandwidthKBPerSec = component.Activities.Sum(a => a.ExecutionProfile.BP.DemandKB),
-            MemoryMB = component.Activities.Sum(a => a.ExecutionProfile.MP.DemandMB),
+            vCpu = config.vCpu,
+            MemoryMB = config.MemoryMB,
+            BandwidthKBPerSec = config.BandwidthKBPerSec,
+            Component = component
         };
+
+        return node;
     }
 }
 

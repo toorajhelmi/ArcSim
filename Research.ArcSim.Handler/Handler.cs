@@ -63,10 +63,10 @@ public class Handler
             }
         }
 
-        var cn = Allocator.Allocator.Instance.Allocate(servingActivity);
+        var cn = Allocator.Allocator.Instance.Allocate(servingActivity, requestingActivity);
         if (cn != null)
         {
-            var estimatedProcessingTime = cn.EstimateProcessingTimeMillisec(servingActivity);
+            var estimatedProcessingTime = cn.EstimateProcessingTimeMillisec(servingActivity, requestingActivity);
             if (handlingStrategy.SkipExpiredRequests &&
                 Simulation.Instance.Now + estimatedProcessingTime > servingActivity.StartTime + simulationStrategy.MaxResponseTime)
             {
@@ -74,7 +74,7 @@ public class Handler
             }
             else
             {
-                cn.Process(servingActivity, requestingActivity);
+                servingActivity.EndTime = Simulation.Instance.Now + cn.EstimateProcessingTimeMillisec(servingActivity, requestingActivity);
                 servingActivity.Completed = true;
             }
         }

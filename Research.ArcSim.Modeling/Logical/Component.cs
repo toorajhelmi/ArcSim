@@ -4,8 +4,19 @@
     //It can be installed on a node independently
     public class Component
     {
+        private List<ActivityDefinition> activities = new();
         public int Id { get; set; }
         public string Name { get; set; }
-        public List<ActivityDefinition> Activities { get; set; } = new List<ActivityDefinition>();
+        public List<ActivityDefinition> Activities
+        {
+            get => activities;
+            set
+            {
+                activities = value;
+                RequiredMemoryMB = activities.Sum(a => a.ExecutionProfile.MP.DemandMB);
+            }
+        } 
+
+        public int RequiredMemoryMB { get; set; }
     }
 }

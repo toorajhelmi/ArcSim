@@ -10,9 +10,9 @@ namespace Research.ArcSim.Modeling.Logical
 
     public enum DemandLevel
     {
-        High,
+        Low,
         Medium,
-        Low
+        High
     }
 
     public class ExecutionProfile

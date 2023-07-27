@@ -58,9 +58,9 @@ namespace Research.ArcSim.Builder
         private void BuildMonolith()
         {
 			var monolith = new AS.Component { Name = "Monolith" };
-			monolith.Activities.AddRange(implementation.System.Modules
+			monolith.Activities = implementation.System.Modules
 					.SelectMany(m => m.Functions)
-					.SelectMany(f => f.Activities));
+					.SelectMany(f => f.Activities).ToList();
 
             foreach (var activity in monolith.Activities)
 			{
@@ -78,7 +78,7 @@ namespace Research.ArcSim.Builder
                     .SelectMany(f => f.Activities))
             {
                 var serverless = new AS.Component { Name = "Serverless" };
-				serverless.Activities.Add(activity);
+				serverless.Activities = new List<ActivityDefinition>{ activity };
                 activity.Component = serverless;
                 implementation.Components.Add(serverless);
             }

@@ -13,21 +13,31 @@ namespace Research.ArcSim.Samples
 	public class SystemGenerator
 	{
         public static SystemGenerator Instance { get; }
-
         static SystemGenerator() => Instance = new();
+        private ExecutionProfile executionProfile;
 
-        public AS.System GenerateSystem(SystemDefinition defintion, bool randomizeSystem, bool randomizeDemand)
+        public AS.System GenerateSystem(SystemDefinition defintion, bool randomizeSystem,
+            bool randomizeDemand, ExecutionProfile executionProfile = null)
         {
+            this.executionProfile = executionProfile;
             var system = GenerateSystem(defintion, randomizeSystem);
             system.SystemDefinition = defintion;
 
             var random = new Random();
             var activities = system.Modules.SelectMany(m => m.Functions).SelectMany(f => f.Activities);
-            foreach (var actvitiy in activities)
+
+            foreach (var activity in activities)
             {
-                actvitiy.ExecutionProfile.PP.Set((AS.Logical.DemandLevel)(randomizeDemand ? random.Next(3) : 1));
-                actvitiy.ExecutionProfile.BP.Set((AS.Logical.DemandLevel)(randomizeDemand ? random.Next(3) : 1));
-                actvitiy.ExecutionProfile.MP.Set((AS.Logical.DemandLevel)(randomizeDemand ? random.Next(3) : 1));
+                if (randomizeDemand)
+                {
+                    activity.ExecutionProfile.PP.Set((DemandLevel)random.Next(3));
+                    activity.ExecutionProfile.BP.Set((DemandLevel)random.Next(3));
+                    activity.ExecutionProfile.MP.Set((DemandLevel)random.Next(3));
+                }
+                else
+                {
+                    activity.ExecutionProfile = executionProfile;
+                }
             }
 
             return system;
@@ -44,6 +54,10 @@ namespace Research.ArcSim.Samples
             Console.WriteLine($"{system.Modules.Average(m => m.Functions.Average(f => f.Activities.Count)):0.00} Avg Activities per Function");
             Console.WriteLine($"{activities.Average(a => a.Dependencies.Count(d => a.Function.Module == d.Function.Module)):0.00} Avg Intra-Modular Dependency");
             Console.WriteLine($"{activities.Average(a => a.Dependencies.Count(d => a.Function.Module != d.Function.Module)):0.00} Avg Inter-Modular Dependency");
+            Console.WriteLine($"Execution Profile:");
+            Console.WriteLine($"- CPU: {executionProfile.PP.DemandMilliCpuSec}vCpu x MilliSec");
+            Console.WriteLine($"- Mem: {executionProfile.MP.DemandMB}MB");
+            Console.WriteLine($"- Net: {executionProfile.BP.DemandKB}KB");
             Console.WriteLine(new string('=', 30));
             Console.WriteLine();
 

@@ -4,40 +4,49 @@ using Research.ArcSim.Modeling.Simulation;
 
 namespace Research.ArcSim.Modeling
 {
-    public class NodeConfig
-    {
-        public double vCpu { get; set; }
-        public int MemoryMB { get; set; }
-        public int BandwidthKBPerSec { get; set; }
-    }
-
     public class ComputingNode : Node
 	{
-        public ComputingNode(NodeConfig config, Component component)
+        public double vCpu { get; set; }
+        public double MemoryMB { get; set; }
+        public double BandwidthKBPerSec { get; set; }
+        // How longer the task would take if it given a faction of demand. 1 mean it is linear so for example if it has access
+        // to half the demandMB, it will take twice. Formula to calc time: AvailalbeMB > DemandMB => No change; Otherwise
+        // DemandMB / AvailalbeMB
+        public int TrashingFactor { get; set; } = 1;
+
+        public void AssignComponent(Component component)
         {
-            this.Config = config;
             Component = component;
         }
 
         //public List<Neighbor> Neighbors { get; set; } = new();
         public Component Component { get; set; }
-        public NodeConfig Config { private set; get; }
 
-        public int EstimateProcessingTimeMillisec(Activity request)
+        public int EstimateProcessingTimeMillisec(Activity servingActivity, Activity requestingActivity)
         {
-            return (int)(request.Definition.ExecutionProfile.PP.DemandMilliCpuSec / Config.vCpu);
-        }
+            var trashingSlowness = 0.0;
 
-        public void Process(Activity servingActivity, Activity requestingActivity)
-        {
-            servingActivity.EndTime = Simulation.Simulation.Instance.Now +
-                EstimateProcessingTimeMillisec(servingActivity);
+            if (Component.RequiredMemoryMB > MemoryMB)
+            {
+                //In this case there is a chance that we need to load the required pages from disk. To caculate the time is takes
+                //to load the page, we consider the chance of missing the page in memory and multiply that by the time is takes to
+                //load from disk. 
 
-            if (servingActivity.Definition.Component != requestingActivity.Definition.Component)
-                servingActivity.EndTime += 1000 * servingActivity.Definition.ExecutionProfile.BP.DemandKB / Config.BandwidthKBPerSec;
+                var swapProbability = 1 - MemoryMB / Component.RequiredMemoryMB;
+                //We assume a throughput of 1200MB/S which is Premium SSD v2 in Azure
+                //https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types
 
-            //Simulation.Simulation.Instance.AddEvent(servingActivity.EndTime, this,
-            //    EventType.ActivityCompleted, servingActivity.Id.ToString());
+                var diskThroughput = 1200;
+                trashingSlowness = 1000 * swapProbability * servingActivity.Definition.ExecutionProfile.MP.DemandMB / diskThroughput;
+            }
+
+            var processingTime = (int)(servingActivity.Definition.ExecutionProfile.PP.DemandMilliCpuSec / vCpu) + trashingSlowness;
+            if (requestingActivity.Definition.Component == null) // this means external call such as internet
+            {
+                processingTime += 1000 * servingActivity.Definition.ExecutionProfile.BP.DemandKB / BandwidthKBPerSec;
+            }
+
+            return (int)processingTime;
         }
     }
 }

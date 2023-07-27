@@ -12,22 +12,36 @@ using Research.ArcSim.Modeling.Logical;
 
 
 //var ecomm = new EcommerceSystem();
+//var systemDef = new SystemDefinition
+//{
+//    Name = "Tiny System",
+//    ModuleCount = 3,
+//    AvgfunctionsPerModule = 3,
+//    ModuleDependency = ModuleDependency.None
+//};
 var systemDef = new SystemDefinition
 {
-    Name = "Tiny System",
+    Name = "Large System",
     ModuleCount = 3,
     AvgfunctionsPerModule = 3,
     ModuleDependency = ModuleDependency.None
 };
 
-var system = SystemGenerator.Instance.GenerateSystem(systemDef, false, false);
+var executionProfile = new ExecutionProfile(
+    processingLevel: DemandLevel.Medium,
+    memoryLevel: DemandLevel.High,
+    bandwithLevel: DemandLevel.Medium);
+
+var system = SystemGenerator.Instance.GenerateSystem(systemDef, false, false, executionProfile);
 SystemGenerator.Instance.ShowSystem(system);
 
 var costProfile = new CostProfile
 {
-    CpuCostvCpuSec = 0.001,
-    MemoryCostPerGBHour = 0.01,
-    BandwidthCostPerGB = 0.1
+    //vCPU and memory rates are based on Azure Function Premimum Plan: https://azure.microsoft.com/en-us/pricing/details/functions/
+    vCpuPerHour = 0.173,
+    MemoryGBPerHour = 0.0123,
+    //Network rate is assuming North America internet acess based on: https://azure.microsoft.com/en-us/pricing/details/bandwidth/
+    BandwidthCostPerGB = 0.08
 };
 
 var simulationStrategy = new SimulationStrategy
