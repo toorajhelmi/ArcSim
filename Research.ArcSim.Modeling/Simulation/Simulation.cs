@@ -1,5 +1,6 @@
 ﻿using System;
 using Research.ArcSim.Modeling.Logical;
+using Research.ArcSim.Modeling.Physical;
 
 namespace Research.ArcSim.Modeling.Simulation
 {
@@ -7,13 +8,16 @@ namespace Research.ArcSim.Modeling.Simulation
     {
         public static Simulation Instance { get; private set; }
 
-        static Simulation() => Instance = new Simulation();
-
         private SortedDictionary<int, List<Event>> events { get; set; } = new();
         public int Now { get; set; } = new();
         public bool Terminated { get; set; }
         public Tuple<string, Activity> TerminationReason { get; set; }
-        public SortedDictionary<int, List<Activity>> requests = new();
+        public SortedDictionary<int, List<Request>> requests = new();
+
+        public static void Create()
+        {
+            Instance = new Simulation();
+        }
 
         public void AddEvent(int time, ComputingNode node, EventType eventType, string description)
         {
@@ -29,19 +33,12 @@ namespace Research.ArcSim.Modeling.Simulation
             });
         }
 
-        public void ScheduleRequest(int startTime, Activity request)
+        public void ScheduleRequest(int startTime, Request request)
         {
-            //if (requests.ContainsKey(request.StartTime))
-            //    requests[request.StartTime].Remove(request);
-   
             if (!requests.ContainsKey(startTime))
-                requests.Add(startTime, new List<Activity>());
+                requests.Add(startTime, new List<Request>());
 
-            if (request.StartTime > startTime)
-            {
-                ;
-            }
-            request.StartTime = startTime;
+            request.ServingActivity.StartTime = startTime;
            
             requests[startTime].Add(request);
         }

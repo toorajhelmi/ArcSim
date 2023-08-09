@@ -21,11 +21,14 @@ namespace Rsearch.ArcSim.Simulator
 				simulationStrategy = simulationStrategy,
 				system = system
 			};
-		}
+			Simulation.Create();
+			StatisticsCalculator<Activity>.Create();
+
+        }
 
 		private SimulationStrategy simulationStrategy;
 		private AS.System system;
-		private List<Activity> originalRequests = new();
+		private List<Request> originalRequests = new();
 			
         public void Run(LogicalImplementation implementation)
 		{
@@ -36,31 +39,24 @@ namespace Rsearch.ArcSim.Simulator
 			while (true)
 			{
 				var t = Simulation.Instance.requests.ElementAt(timeIndex).Key;
-				if (t % 1000 == 0)
-					ShowProgress();
+				//if (timeIndex % 10 == 0)
+				ShowProgress(timeIndex);
+
 				Simulation.Instance.Now = t;
 				if (Simulation.Instance.requests.ContainsKey(t))
 				{
 					foreach (var request in Simulation.Instance.requests[t])
 					{
-						if (request.StartTime == t)
+						if (request.ServingActivity.StartTime == t)
 						{
-							Handler.Instance.Handle(request, new ExternalActivity(), new List<Activity>());
+							FireForgetHandler.Instance.Handle(request);
 							if (Simulation.Instance.Terminated)
 							{
 								Console.WriteLine($"Terminated... {Simulation.Instance.TerminationReason.Item1}");
-								break;
+								return;
 							}
 						}
 					}
-				}
-
-				var events = Simulation.Instance.GetEvents(t);
-				var completionEvents = events.Where(e => e.EventType == EventType.ActivityCompleted);
-
-                foreach (var completionEvent in completionEvents)
-				{
-					Allocator.Instance.FreeUp(completionEvent);
 				}
 
 				timeIndex++;
@@ -68,21 +64,39 @@ namespace Rsearch.ArcSim.Simulator
 					break;
 			}
 
-			StatisticsCalculator<Activity>.Instance.Log(() => originalRequests);
+            StatisticsCalculator<Activity>.Instance.Log(() =>
+			originalRequests.Select(r => r.ServingActivity).ToList());
 
 			Console.WriteLine();
             ShowReport();
+
+			Allocator.Instance.ShowReport();
+
+			var bugs = StatisticsCalculator<Activity>.Instance.Any(s => s.ProcessingTime < 0);
+			foreach (var activity in bugs)
+			{
+				ShowActivityTree(activity, 0);
+            }
         }
 
-		private void ShowProgress()
+		private void ShowActivityTree(Activity parent, int depth)
+		{
+			Console.WriteLine($"{new string(' ', depth)}ID: {parent.Id}, OS:{parent.OriginalStartTime}, S:{parent.StartTime}, E:{parent.EndTime}");
+			foreach (var child in parent.Dependencies)
+			{
+				ShowActivityTree(child, depth + 1);
+			}
+		}
+
+		private void ShowProgress(int index)
 		{
             char[] spinners = { '|', '/', '-', '\\' };
-            const int animationDelay = 100; 
+            //const int animationDelay = 100; 
 
-            int progress = Simulation.Instance.Now * 100 / Simulation.Instance.requests.Last().Key;
+            int progress = index * 100 / Simulation.Instance.requests.Count;
 
 			Console.Write("\r" + "Running Simulation: {0}%", progress); //, spinners[Simulation.Instance.Now % spinners.Length]);
-            Thread.Sleep(animationDelay);
+            //Thread.Sleep(animationDelay);
         }
 
 		private void ShowConfig()
@@ -93,15 +107,15 @@ namespace Rsearch.ArcSim.Simulator
 		private void ShowReport()
 		{
 			var allRequests = originalRequests;
-            var completedRequests = allRequests.Where(r => r.Completed);
+            var completedRequests = allRequests.Where(r => r.ServingActivity.Completed);
 
             Console.WriteLine();
-			Console.WriteLine($"Simulation completed after {Simulation.Instance.Now / 1000} seconds.");
+            Console.WriteLine("Simulation Report");
+            Console.WriteLine($"Simulation completed after {Simulation.Instance.Now / 1000} seconds.");
             Console.WriteLine($"Request Count: {StatisticsCalculator<Activity>.Instance.CalcStats(a => true, Stat.Average)}");
             Console.WriteLine($"Completed Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Completed, Stat.Percentage):0.00}%");
             Console.WriteLine($"Expired Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Expired, Stat.Percentage):0.00}%");
-            Console.WriteLine($"Average Processing Time: {completedRequests.Average(r => r.ProcessingTime):0} mSec");
-            Console.WriteLine($"Total Cost: ${Allocator.Instance.CurrentCost:0.000}");
+            Console.WriteLine($"Average Processing Time: {completedRequests.Average(r => r.ServingActivity.ProcessingTime):0} mSec");
         }
 
 		private void GenerateRequests()
@@ -122,8 +136,13 @@ namespace Rsearch.ArcSim.Simulator
 					var requestInterval = 1000 / simulationStrategy.AvgReqPerSecond;
 					for (int t = 0; t < simulationStrategy.SimulationDurationSecs * 1000; t += requestInterval)
 					{
-						var request = new Activity(
-                            requestableActivities.ElementAt(activityRandomizor.Next(requestableActivities.Count)), t);
+						var request = new Request
+						{
+							ServingActivity = new Activity(
+								requestableActivities.ElementAt(activityRandomizor.Next(requestableActivities.Count)), t),
+							RequestingActivity = new ExternalActivity()
+						};
+
 						originalRequests.Add(request);
 						Simulation.Instance.ScheduleRequest(t, request);
 					}

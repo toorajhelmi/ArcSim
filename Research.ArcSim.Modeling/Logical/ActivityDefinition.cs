@@ -20,14 +20,14 @@ namespace Research.ArcSim.Modeling
         public Component Host { get; set; }
         public Layer Layer { get; set; }
         public List<ActivityDefinition> Dependencies { get; set; } = new List<ActivityDefinition>();
-        public ExecutionProfile ExecutionProfile { get; set; }
+        public ExecutionDemand ExecutionProfile { get; set; }
         public Function Function { get; set; }
         public Component Component { get; set; }
 
         public ActivityDefinition()
         {
             //Default execution profile
-            ExecutionProfile = new ExecutionProfile(DemandLevel.Medium, DemandLevel.Medium, DemandLevel.Medium);
+            ExecutionProfile = new ExecutionDemand(DemandLevel.Medium, DemandLevel.Medium, DemandLevel.Medium);
         }
     }
 }

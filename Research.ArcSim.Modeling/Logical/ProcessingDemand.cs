@@ -1,7 +1,7 @@
 ﻿using System;
 namespace Research.ArcSim.Modeling.Logical
 {
-	public class ProcessingProfile
+	public class ProcessingDemand
 	{
 		//How many seconds the task will take if it has access to 1GHz CPU
 		public int DemandMilliCpuSec { get; set; }

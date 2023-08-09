@@ -1,26 +1,26 @@
 ﻿
 using Research.ArcSim.Modeling;
+using Research.ArcSim.Modeling.Common;
 using Research.ArcSim.Modeling.Core;
 using Research.ArcSim.Modeling.Logical;
+using Research.ArcSim.Modeling.Physical;
 using Research.ArcSim.Modeling.Simulation;
 
 namespace Research.ArcSim.Allocator;
 
 public class Allocator
 {
-    private const int hour_Millisec = 60 * 60 * 1000;
-    private const int GB_MB = 1024;
-    private const int MB_KB = 1024;
-    private const int GB_KB = GB_MB * MB_KB;
     public static Dictionary<string, ComputingNode> Configs = new();
 
     private SimulationStrategy strategy;
     private CostProfile costProfile;
-    private List<Allocation> Allocations { get; set; } = new();
     private LogicalImplementation implementation;
+    private Bandwidth bandwidth;
 
+    public List<Allocation> Allocations { get; set; } = new();
     public double CurrentCost { get; set; }
     public static Allocator Instance { get; private set; }
+
 
     static Allocator()
     {
@@ -28,52 +28,58 @@ public class Allocator
         Configs.Add("Light", new ComputingNode
         {
             vCpu = 1,
-            MemoryMB = 3.5 * GB_MB, //3.5GB
-            BandwidthKBPerSec = 12.5 * MB_KB //100Mbps
+            MemoryMB = 3.5 * Units.GB_MB, //3.5GB
         });
         Configs.Add("Standard", new ComputingNode
         {
             vCpu = 2,
-            MemoryMB = 7 * GB_MB, //3.5GB
-            BandwidthKBPerSec = 12.5 * MB_KB //100Mbps
+            MemoryMB = 7 * Units.GB_MB, //3.5GB
         });
         Configs.Add("Strong", new ComputingNode
         {
             vCpu = 4,
-            MemoryMB = 14 * GB_MB, //3.5GB
-            BandwidthKBPerSec = 12.5 * MB_KB //100Mbps
+            MemoryMB = 14 * Units.GB_MB, //3.5GB
         });
     }
 
     public static void Create(SimulationStrategy strategy, CostProfile costProfile,
-        LogicalImplementation implementation)
+        LogicalImplementation implementation, Bandwidth bandwidth)
     {
         Instance = new Allocator();
         Instance.strategy = strategy;
         Instance.costProfile = costProfile;
         Instance.implementation = implementation;
+        Instance.bandwidth = bandwidth;
     }
 
-    public ComputingNode Allocate(Activity servingActivity, Activity requestingActivity)
+    public ComputingNode Allocate(Request request)
     {
-        var node = AllocateNode(servingActivity.Definition.Component);
-        var execTime = node.EstimateProcessingTimeMillisec(servingActivity, requestingActivity);
+        var node = AllocateNode(request.ServingActivity.Definition.Component);
+        var (response, utilization) = node.CalculateProcessingTimeMillisec(request, true);
 
+        //node.Utilization.CpuCost = node.vCpu * response.ProcessingTime * costProfile.vCpuPerHour / Units.Hour_Millisec;
+        //node.Utilization.MemoryCost = node.MemoryMB * response.ProcessingTime * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour_Millisec;
 
-        var execCost = node.vCpu * execTime * costProfile.vCpuPerHour / hour_Millisec +
-            node.MemoryMB * execTime * costProfile.MemoryGBPerHour / GB_MB / hour_Millisec;
+        //var netUnitCost = 0.0;
 
-        if (requestingActivity.Definition.Component != null) //External activity such as internet
-            execCost += servingActivity.Definition.ExecutionProfile.BP.DemandKB * costProfile.BandwidthCostPerGB / GB_KB;
+        //if (request.GetScope() == RequestScope.Internet)
+        //    netUnitCost = costProfile.BandwidthCostPerGBInternet;
+        //if (request.GetScope() == RequestScope.Internet)
+        //    netUnitCost = costProfile.BandwidthCostPerGBIntranet;
 
-        if (CurrentCost + execCost > strategy.TotalCost)
-        {
-            Simulation.Instance.Terminate("Max Cost Research", servingActivity);
-            return null;
-        }
-        else
-        {
-            CurrentCost += execCost;
+        //utilization.NetworkCost = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB * netUnitCost / Units.GB_KB;
+
+        //if (request.GetScope() != RequestScope.Local)
+        //    utilization.BandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB_KB;
+
+        //if (CurrentCost + utilization.TotalCost > strategy.TotalCost)
+        //{
+        //    Simulation.Instance.Terminate("Max Cost Reached", request.ServingActivity);
+        //    return null;
+        //}
+        //else
+        //{
+           // CurrentCost += utilization.TotalCost;
 
             Allocations.Add(new Allocation
             {
@@ -82,12 +88,12 @@ public class Allocator
             });
 
             return node;
-        }
+        //}
     }
 
-    public void FreeUp(Event completionEvent)
+    public void FreeUp(ComputingNode cn, int time)
     {
-        Allocations.First(a => a.ComputingNode == completionEvent.Node).To = Simulation.Instance.Now;
+        Allocations.First(a => a.ComputingNode == cn).To = time;
     }
 
     private ComputingNode AllocateNode(Component component)
@@ -110,11 +116,25 @@ public class Allocator
         {
             vCpu = config.vCpu,
             MemoryMB = config.MemoryMB,
-            BandwidthKBPerSec = config.BandwidthKBPerSec,
+            Bandwidth = bandwidth,
             Component = component
         };
 
         return node;
+    }
+
+    public void ShowReport()
+    {
+        var utilizations = Allocations.Select(a => a.ComputingNode.GetUtilization(costProfile));
+
+        Console.WriteLine();
+        Console.WriteLine("Allocation Report");
+        //Console.WriteLine($"Ave CPU: {Allocations.Average(a => a.ComputingNode.Utilization.CpuCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.ProcessingMSec):0}");
+        //Console.WriteLine($"Avg Mem: {Allocations.Average(a => a.ComputingNode.Utilization.MemoryCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.SwapingMSec):0}");
+        //Console.WriteLine($"Avg Net: {Allocations.Average(a => a.ComputingNode.Utilization.NetworkCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.TransmissionMSec):0}");
+        //Console.WriteLine($"Requests (Internet|Intranet|Internal): {Allocations.Sum(a => a.ComputingNode.Utilization.InternetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.IntranetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.InternalRequestCount)}");
+        Console.WriteLine($"Total Duration: {utilizations.Sum(a => a.TotalMSec):0}");
+        Console.WriteLine($"Total Cost: {utilizations.Sum(a => a.TotalCost):0.000000}");
     }
 }
 

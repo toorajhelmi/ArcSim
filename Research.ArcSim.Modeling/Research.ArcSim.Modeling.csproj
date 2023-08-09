@@ -10,10 +10,12 @@
     <None Remove="Arc\" />
     <None Remove="Physical\" />
     <None Remove="Simulation\" />
+    <None Remove="Common\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Arc\" />
     <Folder Include="Physical\" />
     <Folder Include="Simulation\" />
+    <Folder Include="Common\" />
   </ItemGroup>
 </Project>

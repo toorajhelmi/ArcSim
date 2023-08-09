@@ -1,5 +1,6 @@
 ﻿using System;
 using Research.ArcSim.Modeling;
+using Research.ArcSim.Modeling.Physical;
 
 namespace Research.ArcSim.Allocator
 {

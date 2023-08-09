@@ -14,10 +14,10 @@ namespace Research.ArcSim.Samples
 	{
         public static SystemGenerator Instance { get; }
         static SystemGenerator() => Instance = new();
-        private ExecutionProfile executionProfile;
+        private ExecutionDemand executionProfile;
 
         public AS.System GenerateSystem(SystemDefinition defintion, bool randomizeSystem,
-            bool randomizeDemand, ExecutionProfile executionProfile = null)
+            bool randomizeDemand, ExecutionDemand executionProfile = null)
         {
             this.executionProfile = executionProfile;
             var system = GenerateSystem(defintion, randomizeSystem);
@@ -150,7 +150,7 @@ namespace Research.ArcSim.Samples
                     {
                         foreach (var depModule in module.Dependencies)
                         {
-                            //Assuming the dependency atctivites could only be at the API layer
+                            //Assuming the dependency activities could only be at the API layer
                             var depActivities = depModule.Functions.SelectMany(s => s.Activities).Where(a => a.Layer == Layer.API);
                             var depActivity = depActivities.ElementAt(random.Next(depActivities.Count()));
                             activity.Dependencies.Add(depActivity);

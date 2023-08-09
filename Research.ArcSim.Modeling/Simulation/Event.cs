@@ -1,4 +1,6 @@
 ﻿using System;
+using Research.ArcSim.Modeling.Physical;
+
 namespace Research.ArcSim.Modeling.Simulation
 {
     public enum EventType

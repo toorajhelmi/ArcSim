@@ -1,7 +1,7 @@
 ﻿using System;
 namespace Research.ArcSim.Modeling.Logical
 {
-	public class MemoryProfile
+	public class MemoryDemand
 	{
 		public int DemandMB { get; set; }
 

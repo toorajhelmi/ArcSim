@@ -1,7 +1,7 @@
 ﻿using System;
 namespace Research.ArcSim.Modeling.Logical
 {
-	public class BandwidthProfile
+	public class BandwidthDemand
 	{
 		public int DemandKB { get; set; }
 
@@ -10,11 +10,11 @@ namespace Research.ArcSim.Modeling.Logical
             switch (demandLevel)
             {
                 //  Serving content; Examples, Product Image and Media Delivery, File Downloads
-                case DemandLevel.High: DemandKB = 5000; break;
+                case DemandLevel.High: DemandKB = 50000; break;
                 // Web site rendreing; Examples: Web Page Loading, Shopping Cart Updates
-                case DemandLevel.Medium: DemandKB = 500; break;
+                case DemandLevel.Medium: DemandKB = 5000; break;
                 // API calls; Examples: Basic Product Listing, User Authentication
-                case DemandLevel.Low: DemandKB = 5; break;
+                case DemandLevel.Low: DemandKB = 50; break;
             }
         }
     }

@@ -1,30 +1,70 @@
 ﻿using System;
+using Research.ArcSim.Modeling.Common;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Simulation;
 
-namespace Research.ArcSim.Modeling
+namespace Research.ArcSim.Modeling.Physical
 {
+    public class Utilization
+    {
+        public Request Request { get; set; }
+        public int StartTime { get; set; }
+        public int EndTime { get; set; }
+
+        public double InternetBandwidthMB { get; set; }
+        public double IntranetBandwidthMB { get; set; }
+        public double LocalBandwidthMB { get; set; }
+
+        public double SwapingMSec { get; set; }
+        public double ProcessingMSec { get; set; }
+        public double TransmissionMSec { get; set; }
+        public double TotalMSec => SwapingMSec + ProcessingMSec + TransmissionMSec;
+
+        public double CpuCost { get; set; }
+        public double MemoryCost { get; set; }
+        public double NetworkCost { get; set; }
+        public double TotalCost => CpuCost + MemoryCost + NetworkCost;
+
+        public Utilization(Request request)
+        {
+            Request = request;
+        }
+
+        public bool Overlaps(Utilization other)
+        {
+            return this.StartTime < other.EndTime && this.EndTime > other.StartTime;
+        }
+
+        public Utilization Combine(Utilization other)
+        {
+            return new Utilization(null)
+            {
+                StartTime = StartTime < other.StartTime ? StartTime : other.StartTime,
+                EndTime = EndTime > other.EndTime ? EndTime : other.EndTime,
+                InternetBandwidthMB = InternetBandwidthMB + other.InternetBandwidthMB,
+                IntranetBandwidthMB = IntranetBandwidthMB + other.IntranetBandwidthMB,
+                LocalBandwidthMB = LocalBandwidthMB + other.LocalBandwidthMB
+            };
+        }
+    }
+
     public class ComputingNode : Node
 	{
         public double vCpu { get; set; }
         public double MemoryMB { get; set; }
-        public double BandwidthKBPerSec { get; set; }
-        // How longer the task would take if it given a faction of demand. 1 mean it is linear so for example if it has access
-        // to half the demandMB, it will take twice. Formula to calc time: AvailalbeMB > DemandMB => No change; Otherwise
-        // DemandMB / AvailalbeMB
-        public int TrashingFactor { get; set; } = 1;
+        public Bandwidth Bandwidth { get; set; }
+        public List<Utilization> Utilizations { get; set; } = new();
 
         public void AssignComponent(Component component)
         {
             Component = component;
         }
 
-        //public List<Neighbor> Neighbors { get; set; } = new();
         public Component Component { get; set; }
 
-        public int EstimateProcessingTimeMillisec(Activity servingActivity, Activity requestingActivity)
+        public (Response, Utilization) CalculateProcessingTimeMillisec(Request request, bool utilize = false)
         {
-            var trashingSlowness = 0.0;
+            var swapingMSec = 0.0;
 
             if (Component.RequiredMemoryMB > MemoryMB)
             {
@@ -36,17 +76,98 @@ namespace Research.ArcSim.Modeling
                 //We assume a throughput of 1200MB/S which is Premium SSD v2 in Azure
                 //https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types
 
-                var diskThroughput = 1200;
-                trashingSlowness = 1000 * swapProbability * servingActivity.Definition.ExecutionProfile.MP.DemandMB / diskThroughput;
+                var diskThroughputMBperSec = 1200;
+                swapingMSec = 1000 * swapProbability * request.ServingActivity.Definition.ExecutionProfile.MP.DemandMB / diskThroughputMBperSec;
             }
 
-            var processingTime = (int)(servingActivity.Definition.ExecutionProfile.PP.DemandMilliCpuSec / vCpu) + trashingSlowness;
-            if (requestingActivity.Definition.Component == null) // this means external call such as internet
+            var processingTime = (int)(request.ServingActivity.Definition.ExecutionProfile.PP.DemandMilliCpuSec / vCpu) + swapingMSec;
+            var trasmissionMSec = 0.0;
+
+            var bandwidth = Bandwidth.GetKBPerSec(request);
+            if (bandwidth == 0)
             {
-                processingTime += 1000 * servingActivity.Definition.ExecutionProfile.BP.DemandKB / BandwidthKBPerSec;
+                trasmissionMSec = double.MaxValue;
+                processingTime += double.MaxValue;
+            }
+            else if (bandwidth != double.MaxValue)
+            {
+                trasmissionMSec = 1000 * request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / bandwidth;
+                processingTime += trasmissionMSec;
             }
 
-            return (int)processingTime;
+            Utilization utilization = default(Utilization);
+
+            if (utilize)
+            {
+                utilization = new Utilization(request);
+                utilization.StartTime = Simulation.Simulation.Instance.Now;
+                utilization.EndTime = Simulation.Simulation.Instance.Now + (int)processingTime;
+                utilization.SwapingMSec = swapingMSec;
+                utilization.ProcessingMSec = request.ServingActivity.Definition.ExecutionProfile.PP.DemandMilliCpuSec / vCpu;
+                utilization.TransmissionMSec = trasmissionMSec;
+                if (request.GetScope() == RequestScope.Internet)
+                    utilization.InternetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB;
+                else if (request.GetScope() == RequestScope.Internet)
+                    utilization.IntranetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB;
+                else
+                    utilization.LocalBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB;
+
+
+                Utilizations.Add(utilization);
+            }
+
+            return (new Response
+            {
+                Succeeded = true,
+                ProcessingTime = (int)processingTime,
+            }, utilization);
+        }
+
+        public Utilization GetUtilization(CostProfile costProfile)
+        {
+            var combinedUtilizations = CombineUtilizations();
+            var totalUtilization = new Utilization(null)
+            {
+                SwapingMSec = combinedUtilizations.Sum(cu => cu.SwapingMSec),
+                ProcessingMSec = combinedUtilizations.Sum(cu => cu.ProcessingMSec),
+                TransmissionMSec = combinedUtilizations.Sum(cu => cu.TransmissionMSec),
+                InternetBandwidthMB = combinedUtilizations.Sum(cu => cu.InternetBandwidthMB) / Units.MB_KB,
+                IntranetBandwidthMB = combinedUtilizations.Sum(cu => cu.IntranetBandwidthMB) / Units.MB_KB,
+                LocalBandwidthMB = combinedUtilizations.Sum(cu => cu.LocalBandwidthMB) / Units.MB_KB,
+            };
+
+            totalUtilization.CpuCost = vCpu * totalUtilization.ProcessingMSec * costProfile.vCpuPerHour / Units.Hour_Millisec;
+            totalUtilization.MemoryCost = MemoryMB * totalUtilization.ProcessingMSec * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour_Millisec;
+            totalUtilization.NetworkCost = totalUtilization.InternetBandwidthMB * costProfile.BandwidthCostPerGBInternet / Units.GB_KB +
+                totalUtilization.IntranetBandwidthMB * costProfile.BandwidthCostPerGBIntranet;
+            return totalUtilization;
+        }
+
+        private List<Utilization> CombineUtilizations()
+        {
+            if (!Utilizations.Any())
+                return new List<Utilization>();
+
+            var sortedUtilizations = Utilizations.OrderBy(u => u.StartTime).ToList();
+
+            var result = new List<Utilization>();
+            var currentWindow = sortedUtilizations[0];
+
+            for (int i = 1; i < sortedUtilizations.Count; i++)
+            {
+                if (currentWindow.Overlaps(sortedUtilizations[i]))
+                {
+                    currentWindow = currentWindow.Combine(sortedUtilizations[i]);
+                }
+                else
+                {
+                    result.Add(currentWindow);
+                    currentWindow = sortedUtilizations[i];
+                }
+            }
+
+            result.Add(currentWindow);
+            return result;
         }
     }
 }

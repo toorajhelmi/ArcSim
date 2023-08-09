@@ -10,9 +10,9 @@ public enum Stat
 
 public class StatisticsCalculator<T>
 {
-    public static StatisticsCalculator<T> Instance { get; }
+    public static StatisticsCalculator<T> Instance { get; private set; }
 
-    static StatisticsCalculator() => Instance = new();
+    public static void Create() => Instance = new();
 
     private List<List<T>> data = new(); //Trials of times of values
      
@@ -31,6 +31,11 @@ public class StatisticsCalculator<T>
             case Stat.Percentage: return 100 * data.Average(trial => (double)trial.Count(item => hasDesiredValue(item)) / trial.Count());
             default: return 0;
         }
+    }
+
+    public List<T> Any(Func<T, bool> condition)
+    {
+        return data.SelectMany(d => d).Where(s => condition(s)).ToList();
     }
 }
 

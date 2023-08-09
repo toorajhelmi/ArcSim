@@ -30,8 +30,8 @@ namespace Research.ArcSim.Builder
 		{
 			Console.WriteLine(new string('-', 30));
 			Console.WriteLine($"Logical Architecture");
-			Console.WriteLine($"Server Style: {Enum.GetName<ServerStyle>(implementation.Arch.Style.ServerStyle)}");
-            Console.WriteLine($"Client Style: {Enum.GetName<ClientStyle>(implementation.Arch.Style.ClientStyle)}");
+			Console.WriteLine($"Server Style: {Enum.GetName<DeploymentStyle>(implementation.Arch.DeploymentStyle)}");
+            Console.WriteLine($"Client Style: {Enum.GetName<ClientStyle>(implementation.Arch.ClientStyle)}");
             Console.WriteLine($"{implementation.Components.Count} Components");
             Console.WriteLine($"{implementation.Components.Average(c => c.Activities.Count)} Avg Activity per Components");
             Console.WriteLine(new string('-', 30));
@@ -40,17 +40,17 @@ namespace Research.ArcSim.Builder
 
 		private void BuildServer()
 		{
-			switch (implementation.Arch.Style.ServerStyle)
+			switch (implementation.Arch.DeploymentStyle)
 			{
-				case ServerStyle.Microservices: BuildMicroservices();
+				case DeploymentStyle.Microservices: BuildMicroservices();
 					break;
-                case ServerStyle.Layered: BuildLayered();
+                case DeploymentStyle.Layered: BuildLayered();
                     break;
                 //case ServerStyle.Peer2Peer:
                 //    break;
-                case ServerStyle.Serverless: BuildServerless();
+                case DeploymentStyle.Serverless: BuildServerless();
                     break;
-				case ServerStyle.Monolith: BuildMonolith();
+				case DeploymentStyle.Monolith: BuildMonolith();
 					break;
             }
         }
