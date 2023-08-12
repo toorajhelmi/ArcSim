@@ -70,7 +70,11 @@ namespace Rsearch.ArcSim.Simulator
 			Console.WriteLine();
             ShowReport();
 
-			Allocator.Instance.ShowReport();
+			Allocator.Instance.ShowReport(new Allocator.ReportSettings
+			{
+				ShowSummary = true,
+				ShowNodeAllocations = true
+			});
 
 			var bugs = StatisticsCalculator<Activity>.Instance.Any(s => s.ProcessingTime < 0);
 			foreach (var activity in bugs)

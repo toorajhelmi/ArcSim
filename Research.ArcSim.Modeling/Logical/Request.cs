@@ -10,10 +10,17 @@ namespace Research.ArcSim.Modeling.Logical
 
 	public class Request
 	{
+		private static int id;
 		public int Id { get; set; }
+		public int RequestedStartTime { get; set; }
 		public Activity ServingActivity { get; set; }
         public Activity RequestingActivity { get; set; }
         public int TrialCount { get; set; }
+
+		public Request()
+		{
+			Id = id++;
+		}
 
         public RequestScope GetScope()
 		{

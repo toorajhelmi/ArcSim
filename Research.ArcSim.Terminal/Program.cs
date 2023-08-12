@@ -1,5 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-using Research.ArcSim.Samples.ECommerce;
+﻿using Research.ArcSim.Samples.ECommerce;
 using Rsearch.ArcSim.Simulator;
 using Research.ArcSim.Builder;
 using Research.ArcSim.Modeling.Arc;
@@ -61,6 +60,10 @@ var handlingStratey = new HandlingStrategy
     SkipExpiredRequests = false
 };
 
+var allocationStrategy = new AllocationStrategy
+{
+};
+
 foreach (var serverStyle in new[] {
     DeploymentStyle.Microservices,
     DeploymentStyle.Serverless,
@@ -82,10 +85,11 @@ foreach (var serverStyle in new[] {
         var impl = Builder.Instance.Build(system, arch);
         Builder.Instance.ShowImplementation();
 
-        FireForgetHandler.Create(simulationStrategy, handlingStratey);
+        FireForgetHandler.Create(simulationStrategy, handlingStratey, arch);
         var internet = new BandwidthProfile(12.5 * Units.MB_KB);
         var intranet = new BandwidthProfile(100 * Units.MB_KB);
-        Allocator.Create(simulationStrategy, costProfile, impl, new Bandwidth(internet, intranet));
+        Allocator.Create(simulationStrategy, costProfile, impl, allocationStrategy,
+            new Bandwidth(internet, intranet));
         //Allocator.Create(simulationStrategy, costProfile, impl, new Bandwidth(0.001 * Units.MB_KB, 0.9, false));
         Simulator.Create(simulationStrategy, system);
         Simulator.Instance.Run(impl);

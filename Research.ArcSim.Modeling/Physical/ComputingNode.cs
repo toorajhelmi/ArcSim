@@ -5,49 +5,6 @@ using Research.ArcSim.Modeling.Simulation;
 
 namespace Research.ArcSim.Modeling.Physical
 {
-    public class Utilization
-    {
-        public Request Request { get; set; }
-        public int StartTime { get; set; }
-        public int EndTime { get; set; }
-
-        public double InternetBandwidthMB { get; set; }
-        public double IntranetBandwidthMB { get; set; }
-        public double LocalBandwidthMB { get; set; }
-
-        public double SwapingMSec { get; set; }
-        public double ProcessingMSec { get; set; }
-        public double TransmissionMSec { get; set; }
-        public double TotalMSec => SwapingMSec + ProcessingMSec + TransmissionMSec;
-
-        public double CpuCost { get; set; }
-        public double MemoryCost { get; set; }
-        public double NetworkCost { get; set; }
-        public double TotalCost => CpuCost + MemoryCost + NetworkCost;
-
-        public Utilization(Request request)
-        {
-            Request = request;
-        }
-
-        public bool Overlaps(Utilization other)
-        {
-            return this.StartTime < other.EndTime && this.EndTime > other.StartTime;
-        }
-
-        public Utilization Combine(Utilization other)
-        {
-            return new Utilization(null)
-            {
-                StartTime = StartTime < other.StartTime ? StartTime : other.StartTime,
-                EndTime = EndTime > other.EndTime ? EndTime : other.EndTime,
-                InternetBandwidthMB = InternetBandwidthMB + other.InternetBandwidthMB,
-                IntranetBandwidthMB = IntranetBandwidthMB + other.IntranetBandwidthMB,
-                LocalBandwidthMB = LocalBandwidthMB + other.LocalBandwidthMB
-            };
-        }
-    }
-
     public class ComputingNode : Node
 	{
         public double vCpu { get; set; }
@@ -62,7 +19,7 @@ namespace Research.ArcSim.Modeling.Physical
 
         public Component Component { get; set; }
 
-        public (Response, Utilization) CalculateProcessingTimeMillisec(Request request, bool utilize = false)
+        public (Response, Utilization) Process(Request request)
         {
             var swapingMSec = 0.0;
 
@@ -97,76 +54,71 @@ namespace Research.ArcSim.Modeling.Physical
 
             Utilization utilization = default(Utilization);
 
-            if (utilize)
+            var minStartTime = int.Max(request.RequestedStartTime, Simulation.Simulation.Instance.Now);
+            //if (utilize)
             {
                 utilization = new Utilization(request);
-                utilization.StartTime = Simulation.Simulation.Instance.Now;
-                utilization.EndTime = Simulation.Simulation.Instance.Now + (int)processingTime;
-                utilization.SwapingMSec = swapingMSec;
-                utilization.ProcessingMSec = request.ServingActivity.Definition.ExecutionProfile.PP.DemandMilliCpuSec / vCpu;
-                utilization.TransmissionMSec = trasmissionMSec;
+                utilization.StartTime = !Utilizations.Any() ? minStartTime : int.Max(minStartTime, Utilizations.Last().EndTime);
+                utilization.SwapingMSec = (int)swapingMSec;
+                utilization.ProcessingMSec = (int)(request.ServingActivity.Definition.ExecutionProfile.PP.DemandMilliCpuSec / vCpu);
+                utilization.TransmissionMSec = (int)trasmissionMSec;
                 if (request.GetScope() == RequestScope.Internet)
-                    utilization.InternetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB;
+                    utilization.InternetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB_KB;
                 else if (request.GetScope() == RequestScope.Internet)
-                    utilization.IntranetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB;
+                    utilization.IntranetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB_KB;
                 else
-                    utilization.LocalBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB;
+                    utilization.LocalBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB_KB;
 
 
                 Utilizations.Add(utilization);
             }
 
-            return (new Response
-            {
-                Succeeded = true,
-                ProcessingTime = (int)processingTime,
-            }, utilization);
+            return (new Response(true), utilization);
         }
 
-        public Utilization GetUtilization(CostProfile costProfile)
+        public AggregatedUtilizaion GetUtilization(CostProfile costProfile)
         {
             var combinedUtilizations = CombineUtilizations();
-            var totalUtilization = new Utilization(null)
+            var totalUtilization = new AggregatedUtilizaion
             {
-                SwapingMSec = combinedUtilizations.Sum(cu => cu.SwapingMSec),
-                ProcessingMSec = combinedUtilizations.Sum(cu => cu.ProcessingMSec),
-                TransmissionMSec = combinedUtilizations.Sum(cu => cu.TransmissionMSec),
+                AggDurationMSec = combinedUtilizations.Sum(cu => cu.TotalMSec),
                 InternetBandwidthMB = combinedUtilizations.Sum(cu => cu.InternetBandwidthMB) / Units.MB_KB,
                 IntranetBandwidthMB = combinedUtilizations.Sum(cu => cu.IntranetBandwidthMB) / Units.MB_KB,
                 LocalBandwidthMB = combinedUtilizations.Sum(cu => cu.LocalBandwidthMB) / Units.MB_KB,
             };
 
-            totalUtilization.CpuCost = vCpu * totalUtilization.ProcessingMSec * costProfile.vCpuPerHour / Units.Hour_Millisec;
-            totalUtilization.MemoryCost = MemoryMB * totalUtilization.ProcessingMSec * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour_Millisec;
+            totalUtilization.CpuCost = vCpu * totalUtilization.AggDurationMSec * costProfile.vCpuPerHour / Units.Hour_Millisec;
+            totalUtilization.MemoryCost = MemoryMB * totalUtilization.AggDurationMSec * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour_Millisec;
             totalUtilization.NetworkCost = totalUtilization.InternetBandwidthMB * costProfile.BandwidthCostPerGBInternet / Units.GB_KB +
                 totalUtilization.IntranetBandwidthMB * costProfile.BandwidthCostPerGBIntranet;
             return totalUtilization;
         }
 
-        private List<Utilization> CombineUtilizations()
+        private List<AggregatedUtilizaion> CombineUtilizations()
         {
             if (!Utilizations.Any())
-                return new List<Utilization>();
+                return new List<AggregatedUtilizaion>();
 
             var sortedUtilizations = Utilizations.OrderBy(u => u.StartTime).ToList();
 
-            var result = new List<Utilization>();
-            var currentWindow = sortedUtilizations[0];
+            var result = new List<AggregatedUtilizaion>();
+            var currenUtil = sortedUtilizations[0].Combine();
 
             for (int i = 1; i < sortedUtilizations.Count; i++)
             {
-                if (currentWindow.Overlaps(sortedUtilizations[i]))
+                AggregatedUtilizaion aggUtil; 
+                if (currenUtil.Overlaps(sortedUtilizations[i]))
                 {
-                    currentWindow = currentWindow.Combine(sortedUtilizations[i]);
+                    currenUtil = currenUtil.Combine(sortedUtilizations[i]);
                 }
                 else
                 {
-                    result.Add(currentWindow);
-                    currentWindow = sortedUtilizations[i];
+                    result.Add(currenUtil.Combine());
+                    currenUtil = sortedUtilizations[i];
                 }
             }
 
-            result.Add(currentWindow);
+            result.Add(currenUtil.Combine());
             return result;
         }
     }

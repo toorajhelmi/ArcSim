@@ -27,7 +27,7 @@ public class QueuedHandler : IHandler
     {
         if (!processingQueue.ContainsKey(request.ServingActivity.Id))
             processingQueue.Add(request.ServingActivity.Id, new Queue<Request>());
-;       processingQueue[request.ServingActivity.Id].Enqueue(request);
+        processingQueue[request.ServingActivity.Id].Enqueue(request);
     }
 
     public void Run()
@@ -38,7 +38,7 @@ public class QueuedHandler : IHandler
             {
                 while (true)
                 {
-                    var cn = Allocator.Allocator.Instance.Allocate(kv.Value.First());
+                    var cn = Allocator.Allocator.Instance.Allocate(kv.Value.First(), true);
                     if (cn != null)
                     {
                         var head = kv.Value.Dequeue();
@@ -114,16 +114,16 @@ public class QueuedHandler : IHandler
 
     private void CompleteProcessing(Request request, ComputingNode cn)
     {
-        var (response, utilization) = cn.CalculateProcessingTimeMillisec(request);
-        if (response.ProcessingTime == double.MaxValue || handlingStrategy.SkipExpiredRequests &&
-            Simulation.Instance.Now + response.ProcessingTime > request.ServingActivity.StartTime + simulationStrategy.MaxResponseTime)
+        var (response, utilization) = cn.Process(request);
+        if (utilization.TotalMSec == double.MaxValue || handlingStrategy.SkipExpiredRequests &&
+            utilization.EndTime > request.ServingActivity.StartTime + simulationStrategy.MaxResponseTime)
         {
             request.ServingActivity.Expired = true;
             request.ServingActivity.EndTime = Simulation.Instance.Now;
         }
         else
         {
-            request.ServingActivity.EndTime = Simulation.Instance.Now + response.ProcessingTime;
+            request.ServingActivity.EndTime = utilization.EndTime;
             request.ServingActivity.Succeeded = true;
         }
 
