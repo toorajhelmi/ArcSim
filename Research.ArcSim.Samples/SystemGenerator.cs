@@ -110,14 +110,14 @@ namespace Research.ArcSim.Samples
                     {
                         Name = $"Activity {moduleIndex}_{functionIndex}_API",
                         Layer = AS.Layer.API,
-                        Dependencies = new List<AS.ActivityDefinition> { dbActivity },
+                        Dependencies = !definition.IntraModularDependency ? new List<AS.ActivityDefinition>() : new List<AS.ActivityDefinition> { dbActivity },
                         Function = function
                     };
                     var prActivity = new AS.ActivityDefinition
                     {
                         Name = $"Activity {moduleIndex}_{functionIndex}_PR",
                         Layer = AS.Layer.Presentation,
-                        Dependencies = new List<AS.ActivityDefinition> { apiActivity },
+                        Dependencies = !definition.IntraModularDependency ? new List<AS.ActivityDefinition>() : new List<AS.ActivityDefinition> { apiActivity },
                         Function = function
                     };
 
@@ -135,7 +135,7 @@ namespace Research.ArcSim.Samples
             }
 
             //Setting inter modular dependencies
-            var dependencyCount = system.Modules.Count * (int)definition.ModuleDependency
+            var dependencyCount = system.Modules.Count * (int)definition.InterModularDependency
                  / Enum.GetValues<ModuleDependency>().Count();
 
             foreach (var module in system.Modules)

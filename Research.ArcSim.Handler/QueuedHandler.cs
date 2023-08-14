@@ -67,7 +67,9 @@ public class QueuedHandler : IHandler
             var pendingDependencies = request.Key.ServingActivity.Dependencies.Where(d => !d.Completed).ToList();
             if (pendingDependencies.All(d => d.Completed && d.EndTime >= Simulation.Instance.Now))
             {
-                CompleteProcessing(request.Key, request.Value);
+                ///FIXME: Fix this
+                Utilization utilization = null;
+                CompleteProcessing(request.Key, request.Value, utilization);
             }
 
             successList.ForEach(r => activeList.Remove(r));
@@ -112,9 +114,9 @@ public class QueuedHandler : IHandler
         //}
     }
 
-    private void CompleteProcessing(Request request, ComputingNode cn)
+    private void CompleteProcessing(Request request, ComputingNode cn, Utilization utilization)
     {
-        var (response, utilization) = cn.Process(request);
+        var response = cn.CompleteProcessing(request, utilization);
         if (utilization.TotalMSec == double.MaxValue || handlingStrategy.SkipExpiredRequests &&
             utilization.EndTime > request.ServingActivity.StartTime + simulationStrategy.MaxResponseTime)
         {

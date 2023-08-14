@@ -54,6 +54,7 @@ namespace Research.ArcSim.Modeling.Physical
         public int ProcessingMSec { get; set; }
         public int TransmissionMSec { get; set; }
         public override int TotalMSec => SwapingMSec + ProcessingMSec + TransmissionMSec;
+        public int AssignedCore { get; set; }
 
         public Utilization(Request request)
         {

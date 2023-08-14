@@ -19,13 +19,23 @@ using Research.ArcSim.Modeling.Common;
 //    ModuleCount = 3,
 //    AvgfunctionsPerModule = 3,
 //    ModuleDependency = ModuleDependency.None
+//    ActivityParallelization = Parallelization.InterActivity,
 //};
 var systemDef = new SystemDefinition
 {
     Name = "Large System",
     ModuleCount = 10,
     AvgfunctionsPerModule = 10,
-    ModuleDependency = ModuleDependency.High
+    InterModularDependency = ModuleDependency.None,
+    IntraModularDependency = false,
+    ActivityParallelization = Parallelization.InterActivity,
+};
+
+var computingNodeConfig = new ComputingNodeConfig
+{
+    Nic = Nic.CpuDependent,
+    Sku = Sku.Range,
+    Location = Location.Cloud
 };
 
 var executionProfile = new ExecutionDemand(
@@ -35,16 +45,6 @@ var executionProfile = new ExecutionDemand(
 
 var system = SystemGenerator.Instance.GenerateSystem(systemDef, false, false, executionProfile);
 SystemGenerator.Instance.ShowSystem(system);
-
-var costProfile = new CostProfile
-{
-    //vCPU and memory rates are based on Azure Function Premimum Plan: https://azure.microsoft.com/en-us/pricing/details/functions/
-    vCpuPerHour = 0.173,
-    MemoryGBPerHour = 0.0123,
-    //Network rate is assuming North America internet acess based on: https://azure.microsoft.com/en-us/pricing/details/bandwidth/
-    BandwidthCostPerGBInternet = 0.08,
-    BandwidthCostPerGBIntranet = 0.02
-};
 
 var simulationStrategy = new SimulationStrategy
 {
@@ -62,12 +62,13 @@ var handlingStratey = new HandlingStrategy
 
 var allocationStrategy = new AllocationStrategy
 {
+    Stickiness = Stickiness.Upfront
 };
 
 foreach (var serverStyle in new[] {
-    DeploymentStyle.Microservices,
-    DeploymentStyle.Serverless,
-    DeploymentStyle.Layered,
+    //DeploymentStyle.Microservices,
+    //DeploymentStyle.Serverless,
+    //DeploymentStyle.Layered,
     DeploymentStyle.Monolith
 })
 {
@@ -85,11 +86,10 @@ foreach (var serverStyle in new[] {
         var impl = Builder.Instance.Build(system, arch);
         Builder.Instance.ShowImplementation();
 
-        FireForgetHandler.Create(simulationStrategy, handlingStratey, arch);
+        FireForgetHandler.Create(simulationStrategy, handlingStratey, arch, systemDef);
         var internet = new BandwidthProfile(12.5 * Units.MB_KB);
         var intranet = new BandwidthProfile(100 * Units.MB_KB);
-        Allocator.Create(simulationStrategy, costProfile, impl, allocationStrategy,
-            new Bandwidth(internet, intranet));
+        Allocator.Create(simulationStrategy, impl, allocationStrategy, new Bandwidth(internet, intranet));
         //Allocator.Create(simulationStrategy, costProfile, impl, new Bandwidth(0.001 * Units.MB_KB, 0.9, false));
         Simulator.Create(simulationStrategy, system);
         Simulator.Instance.Run(impl);

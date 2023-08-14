@@ -9,26 +9,23 @@ public class FireForgetHandler : IHandler
     private HandlingStrategy handlingStrategy;
     private SimulationStrategy simulationStrategy;
     private Arch arch;
+    private SystemDefinition systemDefinition;
 
     public static IHandler Instance { get; private set; }
 
     public static void Create(SimulationStrategy simulationStrategy, HandlingStrategy handlingStrategy,
-        Arch arch)
+        Arch arch, SystemDefinition systemDefinition)
     {
         Instance = new FireForgetHandler
         {
             handlingStrategy = handlingStrategy,
             simulationStrategy = simulationStrategy,
-            arch = arch
+            arch = arch,
+            systemDefinition = systemDefinition
         };
     }
 
     public void Handle(Request request)
-    {
-        Handle(request, new List<Request>());
-    }
-
-    public void Handle(Request request, List<Request> dependentRequests)
     {
         var cn = Allocator.Allocator.Instance.Allocate(request, arch.DeploymentStyle != DeploymentStyle.Serverless);
         if (cn == null)
@@ -38,11 +35,11 @@ public class FireForgetHandler : IHandler
             return;
         }
 
+        var utilization = cn.StartProcessing(request, systemDefinition.ActivityParallelization);
+
         var pendingDependencies = request.ServingActivity.Dependencies.Where(d => !d.Completed).ToList();
         if (pendingDependencies.Any())
         {
-            dependentRequests.Add(request);
-
             foreach (var pendingDependency in pendingDependencies)
             {
                 var dependentReq = new Request
@@ -50,7 +47,7 @@ public class FireForgetHandler : IHandler
                     ServingActivity = pendingDependency,
                     RequestingActivity = request.ServingActivity
                 };
-                Handle(dependentReq, dependentRequests);
+                Handle(dependentReq);
             }
 
             if (pendingDependencies.Any(r => r.Expired))
@@ -66,24 +63,12 @@ public class FireForgetHandler : IHandler
                 return;
             }
 
-            //var newStartTime = pendingDependencies.Max(d => d.EndTime);
-            //if (newStartTime > request.ServingActivity.StartTime)
-            //{
-            //    Simulation.Instance.ScheduleRequest(newStartTime, request);
-
-            //    foreach (var dependent in dependentRequests)
-            //    {
-            //        if (dependent.ServingActivity.StartTime < newStartTime)
-            //        {
-            //            Simulation.Instance.ScheduleRequest(newStartTime, dependent);
-            //        }
-            //    }
-            //}
-
             request.RequestedStartTime = pendingDependencies.Max(d => d.EndTime);
         }
 
-        var (response, utilization) = cn.Process(request);
+        var response = cn.CompleteProcessing(request, utilization);
+        request.ServingActivity.StartTime = utilization.StartTime;
+
         if (utilization.TotalMSec == double.MaxValue || handlingStrategy.SkipExpiredRequests &&
             utilization.EndTime > request.ServingActivity.StartTime + simulationStrategy.MaxResponseTime)
         {

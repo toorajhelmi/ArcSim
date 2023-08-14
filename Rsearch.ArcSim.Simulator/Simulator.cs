@@ -65,7 +65,7 @@ namespace Rsearch.ArcSim.Simulator
 			}
 
             StatisticsCalculator<Activity>.Instance.Log(() =>
-			originalRequests.Select(r => r.ServingActivity).ToList());
+				originalRequests.Select(r => r.ServingActivity).ToList());
 
 			Console.WriteLine();
             ShowReport();
@@ -73,24 +73,20 @@ namespace Rsearch.ArcSim.Simulator
 			Allocator.Instance.ShowReport(new Allocator.ReportSettings
 			{
 				ShowSummary = true,
-				ShowNodeAllocations = true
+				ShowNodeAllocations = true,
+				ShowRequestDetails = false
 			});
 
 			var bugs = StatisticsCalculator<Activity>.Instance.Any(s => s.ProcessingTime < 0);
-			foreach (var activity in bugs)
+			if (bugs.Any())
 			{
-				ShowActivityTree(activity, 0);
-            }
-        }
-
-		private void ShowActivityTree(Activity parent, int depth)
-		{
-			Console.WriteLine($"{new string(' ', depth)}ID: {parent.Id}, OS:{parent.OriginalStartTime}, S:{parent.StartTime}, E:{parent.EndTime}");
-			foreach (var child in parent.Dependencies)
-			{
-				ShowActivityTree(child, depth + 1);
+				Console.WriteLine("BUGS: NAGATIVE PROCESSING TIME:");
+				foreach (var activity in bugs)
+				{
+					activity.ShowActivityTree(0);
+				}
 			}
-		}
+        }
 
 		private void ShowProgress(int index)
 		{
@@ -110,19 +106,19 @@ namespace Rsearch.ArcSim.Simulator
 
 		private void ShowReport()
 		{
-			var allRequests = originalRequests;
-            var completedRequests = allRequests.Where(r => r.ServingActivity.Completed);
+            var completedOriginalRequests = originalRequests.Where(r => r.ServingActivity.Completed).Select(r => r.ServingActivity);
+			var completedAllRequests = originalRequests.SelectMany(or => or.ServingActivity.Flatten());
 
             Console.WriteLine();
             Console.WriteLine("Simulation Report");
             Console.WriteLine($"Simulation completed after {Simulation.Instance.Now / 1000} seconds.");
-            Console.WriteLine($"Request Count: {StatisticsCalculator<Activity>.Instance.CalcStats(a => true, Stat.Average)}");
+            Console.WriteLine($"Request Count (Orig|All): {completedOriginalRequests.Count()}|{completedAllRequests.Count()}");
             Console.WriteLine($"Completed Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Completed, Stat.Percentage):0.00}%");
             Console.WriteLine($"Expired Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Expired, Stat.Percentage):0.00}%");
-            Console.WriteLine($"Average Processing Time: {completedRequests.Average(r => r.ServingActivity.ProcessingTime):0} mSec");
+            Console.WriteLine($"Avg Proc Time mSec (Orig|All): {completedOriginalRequests.Average(r => r.ProcessingTime):0}|{completedAllRequests.Average(r => r.ProcessingTime):0}");
         }
 
-		private void GenerateRequests()
+        private void GenerateRequests()
 		{
 			//Only API or Presentation activities can be requested
 			var requestableActivities = system.Modules
