@@ -2,6 +2,7 @@
 using System;
 using System.Xml.Linq;
 using Research.ArcSim.Modeling;
+using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Common;
 using Research.ArcSim.Modeling.Core;
 using Research.ArcSim.Modeling.Logical;
@@ -94,9 +95,7 @@ public class Allocator
         Instance.implementation = implementation;
         Instance.bandwidth = simulationConfig.Bandwidth;
 
-        var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
-
-        Instance.costProfile = stickiness == Stickiness.OnDemand ? OnDemandCostProfile : UpfrontCostProfile;
+        Instance.costProfile = simulationConfig.AllocationStrategy.Stickiness == Stickiness.OnDemand ? OnDemandCostProfile : UpfrontCostProfile;
     }
 
     public void FreeUp(ComputingNode cn, int time)
@@ -107,7 +106,7 @@ public class Allocator
     public ComputingNode GetServingNode(Request request)
     {
         ComputingNode node = null;
-        var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
+        var stickiness = allocationStrategy.Stickiness;
 
         if (!(request.RequestingActivity is ExternalActivity))
         {
@@ -156,11 +155,10 @@ public class Allocator
             //Console.WriteLine($"Avg Net: {Allocations.Average(a => a.ComputingNode.Utilization.NetworkCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.TransmissionMSec):0}");
             //Console.WriteLine($"Requests (Internet|Intranet|Internal): {Allocations.Sum(a => a.ComputingNode.Utilization.InternetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.IntranetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.InternalRequestCount)}");
 
-            var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
+ 
+            Console.WriteLine($"Stickiness: {Enum.GetName<Stickiness>(allocationStrategy.Stickiness)} ");
 
-            Console.WriteLine($"Stickiness: {Enum.GetName<Stickiness>(stickiness)} ");
-
-            if (stickiness == Stickiness.OnDemand)
+            if (allocationStrategy.Stickiness == Stickiness.OnDemand)
             {
                 Console.WriteLine($"Total|Avg Dur (mSec): {utilizations.Sum(nodeUtil => nodeUtil.Util.AggDurationMSec):0} | {utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec):0}");
                 Console.WriteLine($"Total|Avg Cost ($): {utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost):0.000000} | {utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost):0.000000}");
@@ -217,9 +215,7 @@ public class Allocator
     {
         ComputingNode node = null;
 
-        var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
-
-        if (stickiness == Stickiness.OnDemand)
+        if (allocationStrategy.Stickiness == Stickiness.OnDemand)
             return AllocateOnDemand(component);
         else
             return AllocateUpfront(component);

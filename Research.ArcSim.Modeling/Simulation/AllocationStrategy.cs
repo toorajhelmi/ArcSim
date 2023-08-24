@@ -39,7 +39,7 @@ namespace Research.ArcSim.Modeling.Simulation
 
     public class AllocationStrategy
 	{
-		public Mandate<DeploymentStyle, Stickiness> Stickiness { get; set; }
+		public Stickiness Stickiness { get; set; }
 		public HorizontalScalingConfig HorizontalScalingConfig { get; set; } = new();
 	}
 }

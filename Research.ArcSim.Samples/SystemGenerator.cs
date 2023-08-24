@@ -16,12 +16,12 @@ namespace Research.ArcSim.Samples
         static SystemGenerator() => Instance = new();
         private ExecutionDemand executionProfile;
 
-        public AS.System GenerateSystem(SystemDefinition defintion, bool randomizeSystem,
+        public AS.System GenerateSystem(SystemDefinition definition, bool randomizeSystem,
             bool randomizeDemand, ExecutionDemand executionProfile = null)
         {
             this.executionProfile = executionProfile;
-            var system = GenerateSystem(defintion, randomizeSystem);
-            system.SystemDefinition = defintion;
+            var system = GenerateSystem(definition, randomizeSystem);
+            system.SystemDefinition = definition;
 
             var random = new Random();
             var activities = system.Modules.SelectMany(m => m.Functions).SelectMany(f => f.Activities);

@@ -10,27 +10,28 @@ using Research.ArcSim.Handler;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Physical;
 using Research.ArcSim.Modeling.Common;
+using Research.ArcSim.Modeling.Logincal;
 
 var simulationConfig = new SimulationConfig();
 //var ecomm = new EcommerceSystem();
+//simulationConfig.SystemDefinition = new SystemDefinition
+//{
+//    Name = "Tiny System",
+//    ModuleCount = 3,
+//    AvgfunctionsPerModule = 3,
+//    InterModularDependency = ModuleDependency.None,
+//    IntraModularDependency = false,
+//    ActivityParallelization = Parallelization.InterActivity,   
+//};
 simulationConfig.SystemDefinition = new SystemDefinition
 {
-    Name = "Tiny System",
-    ModuleCount = 3,
-    AvgfunctionsPerModule = 3,
+    Name = "Large System",
+    ModuleCount = 10,
+    AvgfunctionsPerModule = 10,
     InterModularDependency = ModuleDependency.None,
     IntraModularDependency = false,
     ActivityParallelization = Parallelization.InterActivity,
 };
-//var systemDef = new SystemDefinition
-//{
-//    Name = "Large System",
-//    ModuleCount = 10,
-//    AvgfunctionsPerModule = 10,
-//    InterModularDependency = ModuleDependency.None,
-//    IntraModularDependency = false,
-//    ActivityParallelization = Parallelization.InterActivity,
-//};
 
 simulationConfig.ComputingNodeConfig = new ComputingNodeConfig
 {
@@ -60,8 +61,6 @@ simulationConfig.HandlingStrategy = new HandlingStrategy
 
 simulationConfig.AllocationStrategy = new AllocationStrategy
 {
-    Stickiness = new Mandate<DeploymentStyle, Stickiness>(new List<(DeploymentStyle, Stickiness)> { (DeploymentStyle.Serverless, Stickiness.OnDemand) }, Stickiness.Upfront),
-
     HorizontalScalingConfig = new HorizontalScalingConfig
     {
         HorizonalScaling = HorizonalScaling.CpuControlled,
@@ -74,6 +73,10 @@ simulationConfig.AllocationStrategy = new AllocationStrategy
         CooldownPeriod = 5 * Units.Minute
     }
 };
+
+Mandates.Add(new Mandate<DeploymentStyle, Stickiness>(
+    new List<(DeploymentStyle, Stickiness)> { (DeploymentStyle.Serverless, Stickiness.OnDemand) },
+    Stickiness.Upfront));
 
 var internet = new BandwidthProfile(12.5 * Units.MB_KB);
 var intranet = new BandwidthProfile(100 * Units.MB_KB);
@@ -96,15 +99,15 @@ foreach (var serverStyle in new[] {
         //ProcessingMode.Queued,
     })
     {
-        var arch = new Arch
+        simulationConfig.Arch = new Arch
         {
             DeploymentStyle = serverStyle,
-            ProcessingMode = ProcessingMode.Queued
+            ProcessingMode = processingMode,
         };
 
-        simulationConfig.Arch = arch;
+        simulationConfig.AllocationStrategy.Stickiness = Mandates.Get<DeploymentStyle, Stickiness>().GetFor(simulationConfig.Arch.DeploymentStyle);
 
-        var impl = Builder.Instance.Build(system, arch);
+        var impl = Builder.Instance.Build(system, simulationConfig.Arch);
         Builder.Instance.ShowImplementation();
 
         FireForgetHandler.Create(simulationConfig);

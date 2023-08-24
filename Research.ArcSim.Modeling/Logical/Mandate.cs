@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Research.ArcSim.Modeling.Simulation
+namespace Research.ArcSim.Modeling.Logincal
 {
 	public class Mandate<T, U> 
 	{
@@ -14,13 +14,13 @@ namespace Research.ArcSim.Modeling.Simulation
 			this.defaultValue = defaultValue;
 		}
 
-		public U SetFor(T t)
+		public U GetFor(T t)
 		{
 			if (!mandates.Any(pair => pair.Item1.Equals(t)))
 				return defaultValue;
 			else
 				return mandates.First(pair => pair.Item1.Equals(t)).Item2;
 		}
-	}
+    }
 }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Common;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Simulation;
@@ -120,8 +121,7 @@ namespace Research.ArcSim.Modeling.Physical
 
         public void CalculateCost(AggregatedUtilizaion utilization, CostProfile costProfile, SimulationConfig simulationConfig)
         {
-            var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
-            var duration = stickiness == Stickiness.OnDemand ? utilization.AggDurationMSec : utilization.EndTime - utilization.StartTime;
+            var duration = simulationConfig.AllocationStrategy.Stickiness == Stickiness.OnDemand ? utilization.AggDurationMSec : utilization.EndTime - utilization.StartTime;
                 
             utilization.CpuCost = vCpu * duration * costProfile.vCpuPerHour / Units.Hour_Millisec;
             utilization.MemoryCost = MemoryMB * duration * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour_Millisec;
