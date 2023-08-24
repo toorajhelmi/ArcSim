@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Research.ArcSim.Allocator;
 using Research.ArcSim.Handler;
 using Research.ArcSim.Modeling;
@@ -12,23 +14,24 @@ namespace Rsearch.ArcSim.Simulator
 {
 	public class Simulator
 	{
-		public static Simulator Instance { private set; get; }
+		private SimulationConfig simulationConfig;
+        private SimulationStrategy simulationStrategy;
+        private AS.System system;
+        private List<Request> originalRequests = new();
+        public static Simulator Instance { private set; get; }
 
-		public static void Create(SimulationStrategy simulationStrategy, AS.System system)
+		public static void Create(SimulationConfig simulationConfig, AS.System system)
 		{
 			Instance = new Simulator
 			{
-				simulationStrategy = simulationStrategy,
+				simulationConfig = simulationConfig,
+				simulationStrategy = simulationConfig.SimulationStrategy,
 				system = system
 			};
 			Simulation.Create();
 			StatisticsCalculator<Activity>.Create();
 
         }
-
-		private SimulationStrategy simulationStrategy;
-		private AS.System system;
-		private List<Request> originalRequests = new();
 			
         public void Run(LogicalImplementation implementation)
 		{
@@ -73,7 +76,7 @@ namespace Rsearch.ArcSim.Simulator
 			Allocator.Instance.ShowReport(new Allocator.ReportSettings
 			{
 				ShowSummary = true,
-				ShowNodeAllocations = true,
+				ShowNodeAllocations = false,
 				ShowRequestDetails = false
 			});
 
@@ -95,22 +98,24 @@ namespace Rsearch.ArcSim.Simulator
 
             int progress = index * 100 / Simulation.Instance.requests.Count;
 
-			Console.Write("\r" + "Running Simulation: {0}%", progress); //, spinners[Simulation.Instance.Now % spinners.Length]);
+			Console.Write("\r" + "Running Simulation: {0}%, {1}sec", progress, Simulation.Instance.Now / 1000); //, spinners[Simulation.Instance.Now % spinners.Length]);
             //Thread.Sleep(animationDelay);
         }
 
-		private void ShowConfig()
-		{
-
-		}
-
 		private void ShowReport()
 		{
+            var jsonOptions = new JsonSerializerOptions
+			{
+				Converters = { new JsonStringEnumConverter() },
+                WriteIndented = true
+            };
+
             var completedOriginalRequests = originalRequests.Where(r => r.ServingActivity.Completed).Select(r => r.ServingActivity);
 			var completedAllRequests = originalRequests.SelectMany(or => or.ServingActivity.Flatten());
 
             Console.WriteLine();
             Console.WriteLine("Simulation Report");
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(simulationConfig, jsonOptions));
             Console.WriteLine($"Simulation completed after {Simulation.Instance.Now / 1000} seconds.");
             Console.WriteLine($"Request Count (Orig|All): {completedOriginalRequests.Count()}|{completedAllRequests.Count()}");
             Console.WriteLine($"Completed Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Completed, Stat.Percentage):0.00}%");
@@ -138,8 +143,7 @@ namespace Rsearch.ArcSim.Simulator
 					{
 						var request = new Request
 						{
-							ServingActivity = new Activity(
-								requestableActivities.ElementAt(activityRandomizor.Next(requestableActivities.Count)), t),
+							ServingActivity = new Activity(requestableActivities.ElementAt(activityRandomizor.Next(requestableActivities.Count)), t),
 							RequestingActivity = new ExternalActivity()
 						};
 

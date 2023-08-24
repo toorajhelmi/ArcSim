@@ -38,7 +38,7 @@ public class QueuedHandler : IHandler
             {
                 while (true)
                 {
-                    var cn = Allocator.Allocator.Instance.Allocate(kv.Value.First(), true);
+                    var cn = Allocator.Allocator.Instance.GetServingNode(kv.Value.First());
                     if (cn != null)
                     {
                         var head = kv.Value.Dequeue();

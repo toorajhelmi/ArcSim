@@ -118,15 +118,36 @@ namespace Research.ArcSim.Modeling.Physical
             return totalUtilization;
         }
 
-        public void CalculateCost(AggregatedUtilizaion utilization, CostProfile costProfile, AllocationStrategy allocationStrategy)
+        public void CalculateCost(AggregatedUtilizaion utilization, CostProfile costProfile, SimulationConfig simulationConfig)
         {
-            var duration = allocationStrategy.Stickiness == Stickiness.OnDemand ? utilization.AggDurationMSec :
-                utilization.EndTime - utilization.StartTime;
+            var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
+            var duration = stickiness == Stickiness.OnDemand ? utilization.AggDurationMSec : utilization.EndTime - utilization.StartTime;
                 
             utilization.CpuCost = vCpu * duration * costProfile.vCpuPerHour / Units.Hour_Millisec;
             utilization.MemoryCost = MemoryMB * duration * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour_Millisec;
             utilization.NetworkCost = utilization.InternetBandwidthMB * costProfile.BandwidthCostPerGBInternet / Units.GB_KB +
                 utilization.IntranetBandwidthMB * costProfile.BandwidthCostPerGBIntranet;
+        }
+
+        public int GetCpuUtilizationPercent(int window = Units.Minute)
+        {
+            var now = Simulation.Simulation.Instance.Now;
+            var since = int.Max(0, now - window);
+
+            var utilizedCores = Utilizations.Where(u => u.Utilization.Any());
+
+            if (!utilizedCores.Any())
+                return 0;
+
+            var utilizedTime = 0;
+
+            foreach (var coreUtil in utilizedCores)
+            {
+                var endedWithinWindow = coreUtil.Utilization.Where(u => u.EndTime == 0 || u.EndTime > since);
+                utilizedTime += endedWithinWindow.Sum(u => u.EndTime == 0 ? now : u.EndTime - int.Max(since, u.StartTime));
+            }
+
+            return 100 * utilizedTime / (utilizedCores.Count() * window);
         }
 
         private List<AggregatedUtilizaion> CombineUtilizations()

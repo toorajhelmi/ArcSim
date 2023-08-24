@@ -1,6 +1,6 @@
 ﻿
 using System;
-using System.Runtime.InteropServices;
+using System.Xml.Linq;
 using Research.ArcSim.Modeling;
 using Research.ArcSim.Modeling.Common;
 using Research.ArcSim.Modeling.Core;
@@ -9,6 +9,12 @@ using Research.ArcSim.Modeling.Physical;
 using Research.ArcSim.Modeling.Simulation;
 
 namespace Research.ArcSim.Allocator;
+
+public enum ScaleEvent
+{
+    CpuHigh,
+    CpuLow
+}
 
 public class Allocator
 {
@@ -26,21 +32,25 @@ public class Allocator
     public static CostProfile OnDemandCostProfile { get; set; }
     public static CostProfile UpfrontCostProfile { get; set; }
 
+    public List<Allocation> Allocations { get; set; } = new();
+    public double CurrentCost { get; set; }
+    public static Allocator Instance { get; private set; }
+
+    private SimulationConfig simulationConfig;
     private SimulationStrategy simulationStrategy;
     private AllocationStrategy allocationStrategy;
     private CostProfile costProfile;
     private LogicalImplementation implementation;
     private Bandwidth bandwidth;
-
-    public List<Allocation> Allocations { get; set; } = new();
-    public double CurrentCost { get; set; }
-    public static Allocator Instance { get; private set; }
+    private Dictionary<Component, List<ComputingNode>> scaleGroup = new();
+    private Dictionary<Component, List<(ScaleEvent ScaleEvent, int Time)>> scaleEvents = new();
+    private Dictionary<Component, int> loadBalancingIndex { get; set; } = new();
 
     static Allocator()
     {
         //Based on this (Azure Premuim Plan for Azure Functions): https://azure.microsoft.com/en-us/pricing/calculator/?service=functions
 
-        onDemandConfigs.Add("Light", new ComputingNode(1, 3.5 * Units.GB_MB)); 
+        onDemandConfigs.Add("Light", new ComputingNode(1, 3.5 * Units.GB_MB));
         onDemandConfigs.Add("Standard", new ComputingNode(2, 7 * Units.GB_MB));
         onDemandConfigs.Add("Strong", new ComputingNode(4, 14 * Units.GB_MB));
 
@@ -75,34 +85,18 @@ public class Allocator
         };
     }
 
-    public static void Create(SimulationStrategy simulationStrategy,
-        LogicalImplementation implementation, AllocationStrategy allocationStrategy,
-        Bandwidth bandwidth)
+    public static void Create(SimulationConfig simulationConfig, LogicalImplementation implementation)
     {
         Instance = new Allocator();
-        Instance.simulationStrategy = simulationStrategy;
-        Instance.allocationStrategy = allocationStrategy;
+        Instance.simulationConfig = simulationConfig;
+        Instance.simulationStrategy = simulationConfig.SimulationStrategy;
+        Instance.allocationStrategy = simulationConfig.AllocationStrategy;
         Instance.implementation = implementation;
-        Instance.bandwidth = bandwidth;
+        Instance.bandwidth = simulationConfig.Bandwidth;
 
-        Instance.costProfile = allocationStrategy.Stickiness == Stickiness.OnDemand ? OnDemandCostProfile : UpfrontCostProfile;
-    }
+        var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
 
-    public ComputingNode Allocate(Request request, bool reuse)
-    {
-        var node = reuse ? request.ServingActivity.Definition.Component.AssignedNode : default(ComputingNode);
-        if (node == null)
-            node = AllocateNode(request.ServingActivity.Definition.Component);
-
-        ///TODO: Need to consider allocation strategy
-
-        Allocations.Add(new Allocation
-        {
-            ComputingNode = node,
-            From = Simulation.Instance.Now
-        });
-
-        return node;
+        Instance.costProfile = stickiness == Stickiness.OnDemand ? OnDemandCostProfile : UpfrontCostProfile;
     }
 
     public void FreeUp(ComputingNode cn, int time)
@@ -110,35 +104,36 @@ public class Allocator
         Allocations.First(a => a.ComputingNode == cn).To = time;
     }
 
-    private ComputingNode AllocateNode(Component component)
+    public ComputingNode GetServingNode(Request request)
     {
-        var totalProcessingRate_vCpu_Secs = component.Activities.Sum(a => (double)a.ExecutionProfile.PP.DemandMilliCpuSec / 1000);
-        var memoryDemandMB = component.Activities.Sum(a => (double)a.ExecutionProfile.MP.DemandMB);
+        ComputingNode node = null;
+        var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
 
-        ComputingNode config = null;
-
-        if (allocationStrategy.Stickiness == Stickiness.OnDemand)
+        if (!(request.RequestingActivity is ExternalActivity))
         {
-            //Assuming we use a vCPU that allows the task to finish processing in 1s. The highest the vCPU, the faster it takes to process
-            //so one could think allocating strong is the most cost effective. But the time it takes for CPU independent tasks such as
-            //network tranfer or disk access normally dominate the processing time so it is best to select a vCPU based on demand.
-
-            if (totalProcessingRate_vCpu_Secs <= 1)
-                config = onDemandConfigs["Light"];
-            else if (totalProcessingRate_vCpu_Secs <= 2)
-                config = onDemandConfigs["Standard"];
-            else
-                config = onDemandConfigs["Strong"];
+            node = request.ServingActivity.Definition.Component.AssignedNode;
         }
-        else
-            config = upfrontConfigs.OrderBy(c => c.Value.MemoryMB)
-                .First(c => c.Value.MemoryMB > memoryDemandMB).Value;
+        else if (stickiness == Stickiness.OnDemand)
+        {
+            node = AllocateNode(request.ServingActivity.Definition.Component);
+        }
+        else if (stickiness == Stickiness.Upfront)
+        {
 
-        var node = new ComputingNode(config.vCpu, config.MemoryMB, bandwidth)
-        { 
-            Component = component
-        };
-        component.AssignedNode = node;
+            if (scaleGroup.ContainsKey(request.ServingActivity.Definition.Component))
+            {
+                ScaleHorizontally(request.ServingActivity.Definition.Component);
+                node = LoadBalance(request.ServingActivity.Definition.Component);
+            }
+            else
+                node = AllocateNode(request.ServingActivity.Definition.Component);              
+        }
+
+        Allocations.Add(new Allocation
+        {
+            ComputingNode = node,
+            From = Simulation.Instance.Now
+        });
 
         return node;
     }
@@ -151,7 +146,7 @@ public class Allocator
             var utilizations = nodes.Select(n => new { Node = n, Util = n.GetUtilization(costProfile) }).ToList();
             foreach (var nodeUtil in utilizations)
             {
-                nodeUtil.Node.CalculateCost(nodeUtil.Util, costProfile, allocationStrategy);
+                nodeUtil.Node.CalculateCost(nodeUtil.Util, costProfile, simulationConfig);
             }
 
             Console.WriteLine();
@@ -161,9 +156,11 @@ public class Allocator
             //Console.WriteLine($"Avg Net: {Allocations.Average(a => a.ComputingNode.Utilization.NetworkCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.TransmissionMSec):0}");
             //Console.WriteLine($"Requests (Internet|Intranet|Internal): {Allocations.Sum(a => a.ComputingNode.Utilization.InternetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.IntranetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.InternalRequestCount)}");
 
-            Console.WriteLine($"Stickiness: {Enum.GetName<Stickiness>(allocationStrategy.Stickiness)} ");
+            var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
 
-            if (allocationStrategy.Stickiness == Stickiness.OnDemand)
+            Console.WriteLine($"Stickiness: {Enum.GetName<Stickiness>(stickiness)} ");
+
+            if (stickiness == Stickiness.OnDemand)
             {
                 Console.WriteLine($"Total|Avg Dur (mSec): {utilizations.Sum(nodeUtil => nodeUtil.Util.AggDurationMSec):0} | {utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec):0}");
                 Console.WriteLine($"Total|Avg Cost ($): {utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost):0.000000} | {utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost):0.000000}");
@@ -213,6 +210,108 @@ public class Allocator
                     }
                 }
             }
+        }
+    }
+
+    private ComputingNode AllocateNode(Component component)
+    {
+        ComputingNode node = null;
+
+        var stickiness = simulationConfig.AllocationStrategy.Stickiness.SetFor(simulationConfig.Arch.DeploymentStyle);
+
+        if (stickiness == Stickiness.OnDemand)
+            return AllocateOnDemand(component);
+        else
+            return AllocateUpfront(component);
+    }
+
+    private ComputingNode AllocateOnDemand(Component component)
+    {
+        var totalProcessingRate_vCpu_Secs = component.Activities.Sum(a => (double)a.ExecutionProfile.PP.DemandMilliCpuSec / 1000);
+        //Assuming we use a vCPU that allows the task to finish processing in 1s. The highest the vCPU, the faster it takes to process
+        //so one could think allocating strong is the most cost effective. But the time it takes for CPU independent tasks such as
+        //network tranfer or disk access normally dominate the processing time so it is best to select a vCPU based on demand.
+
+        ComputingNode config = null;
+        if (totalProcessingRate_vCpu_Secs <= 1)
+            config = onDemandConfigs["Light"];
+        else if (totalProcessingRate_vCpu_Secs <= 2)
+            config = onDemandConfigs["Standard"];
+        else
+            config = onDemandConfigs["Strong"];
+
+        var node = new ComputingNode(config.vCpu, config.MemoryMB, bandwidth);
+        node.Component = component;
+        component.AssignedNode = node;
+        return node;
+    }
+
+    private ComputingNode AllocateUpfront(Component component)
+    {
+        var memoryDemandMB = component.Activities.Sum(a => (double)a.ExecutionProfile.MP.DemandMB);
+
+        var config = upfrontConfigs.OrderBy(c => c.Value.MemoryMB)
+            .First(c => c.Value.MemoryMB > memoryDemandMB).Value;
+
+        var node = new ComputingNode(config.vCpu, config.MemoryMB, bandwidth);
+        node.Component = component;
+        component.AssignedNode = node;
+
+        if (!scaleEvents.ContainsKey(component))
+        {
+            scaleEvents.Add(component, new());
+            scaleGroup.Add(component, new());
+            loadBalancingIndex.Add(component, 0);
+        }
+        scaleGroup[component].Add(node);
+
+        return node;
+    }
+
+    private void ScaleHorizontally(Component component)
+    {
+        if (allocationStrategy.HorizontalScalingConfig.HorizonalScaling == HorizonalScaling.CpuControlled)
+        {
+            var cpuUtilization = scaleGroup[component].Average(n => n.GetCpuUtilizationPercent());
+
+            if (cpuUtilization > allocationStrategy.HorizontalScalingConfig.MaxCpuUtilization &&
+                scaleGroup[component].Count < allocationStrategy.HorizontalScalingConfig.MaxInstances)
+            {
+                if (!scaleEvents[component].Any() || Simulation.Instance.Now - scaleEvents[component].Last().Time > allocationStrategy.HorizontalScalingConfig.CooldownPeriod)
+                {
+                    scaleEvents[component].Add(new(ScaleEvent.CpuHigh, Simulation.Instance.Now));
+                    AllocateUpfront(component);
+                }
+            }
+            else
+            {
+                if (cpuUtilization < allocationStrategy.HorizontalScalingConfig.MinCpuUtilization &&
+                    scaleGroup[component].Count > allocationStrategy.HorizontalScalingConfig.MinCpuUtilization)
+                {
+                    if (!scaleEvents[component].Any() || Simulation.Instance.Now - scaleEvents[component].Last().Time > allocationStrategy.HorizontalScalingConfig.CooldownPeriod)
+                    {
+                        scaleGroup[component].Remove(scaleGroup[component].First());
+                        scaleEvents[component].Add(new(ScaleEvent.CpuLow, Simulation.Instance.Now));
+                    }
+                }
+            }
+        }
+        else // if (allocationStrategy.HorizontalScalingConfig.HorizonalScaling == HorizonalScaling.QueueControlled)
+        {
+            ///TODO
+        }
+    }
+
+    private ComputingNode LoadBalance(Component component)
+    {
+        switch (allocationStrategy.HorizontalScalingConfig.LoadBalancingStrategy)
+        {
+            case LoadBalancingStrategy.RoundRobin:
+                var node = scaleGroup[component].ElementAt(loadBalancingIndex[component]);
+                loadBalancingIndex[component] = (loadBalancingIndex[component] + 1) % scaleGroup[component].Count;
+                return node;
+            default:
+                return scaleGroup[component].First();
         }
     }
 }

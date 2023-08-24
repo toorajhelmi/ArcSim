@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Research.ArcSim.Modeling;
 using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Core;
@@ -28,8 +30,15 @@ namespace Research.ArcSim.Builder
 
         public void ShowImplementation()
 		{
-			Console.WriteLine(new string('-', 30));
+            var jsonOptions = new JsonSerializerOptions
+            {
+                Converters = { new JsonStringEnumConverter() },
+                WriteIndented = true
+            };
+
+            Console.WriteLine(new string('-', 30));
 			Console.WriteLine($"Logical Architecture");
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(implementation.Arch, jsonOptions));
 			Console.WriteLine($"Server Style: {Enum.GetName<DeploymentStyle>(implementation.Arch.DeploymentStyle)}");
             Console.WriteLine($"Client Style: {Enum.GetName<ClientStyle>(implementation.Arch.ClientStyle)}");
             Console.WriteLine($"{implementation.Components.Count} Components");

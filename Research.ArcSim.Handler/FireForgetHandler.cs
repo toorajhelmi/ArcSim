@@ -13,21 +13,20 @@ public class FireForgetHandler : IHandler
 
     public static IHandler Instance { get; private set; }
 
-    public static void Create(SimulationStrategy simulationStrategy, HandlingStrategy handlingStrategy,
-        Arch arch, SystemDefinition systemDefinition)
+    public static void Create(SimulationConfig simulationConfig)
     {
         Instance = new FireForgetHandler
         {
-            handlingStrategy = handlingStrategy,
-            simulationStrategy = simulationStrategy,
-            arch = arch,
-            systemDefinition = systemDefinition
+            handlingStrategy = simulationConfig.HandlingStrategy,
+            simulationStrategy = simulationConfig.SimulationStrategy,
+            arch = simulationConfig.Arch,
+            systemDefinition = simulationConfig.SystemDefinition
         };
     }
 
     public void Handle(Request request)
     {
-        var cn = Allocator.Allocator.Instance.Allocate(request, arch.DeploymentStyle != DeploymentStyle.Serverless);
+        var cn = Allocator.Allocator.Instance.GetServingNode(request);
         if (cn == null)
         {
             request.ServingActivity.Failed = true;

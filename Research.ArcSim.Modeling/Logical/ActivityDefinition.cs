@@ -15,6 +15,8 @@ namespace Research.ArcSim.Modeling
     /// </summary>
     public class ActivityDefinition
     {
+        static int nextId = 0;
+        public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public Component Host { get; set; }
@@ -26,6 +28,7 @@ namespace Research.ArcSim.Modeling
 
         public ActivityDefinition()
         {
+            Id = nextId++;
             //Default execution profile
             ExecutionProfile = new ExecutionDemand(DemandLevel.Medium, DemandLevel.Medium, DemandLevel.Medium);
         }
