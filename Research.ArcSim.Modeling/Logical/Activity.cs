@@ -43,9 +43,7 @@ namespace Research.ArcSim.Modeling.Logical
 			set
 			{
 				if (value < 0)
-				{
-					;
-				}
+					throw new Exception("Bug");
 				else
 					endT = value;
 			}

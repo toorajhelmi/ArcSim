@@ -118,7 +118,6 @@ public class Allocator
         }
         else if (stickiness == Stickiness.Upfront)
         {
-
             if (scaleGroup.ContainsKey(request.ServingActivity.Definition.Component))
             {
                 ScaleHorizontally(request.ServingActivity.Definition.Component);

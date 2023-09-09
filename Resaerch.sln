@@ -15,13 +15,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Research.ArcSim.Extensions"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Research.ArcSim.Terminal", "Research.ArcSim.Terminal\Research.ArcSim.Terminal.csproj", "{9D629CBB-4A0B-4592-8D3C-3E45E669EB1A}"
 EndProject
-Project("{9344BDBB-3E7F-41FC-A0DD-8665D75EE146}") = "Resaerch.ArcSim.UI", "Resaerch.ArcSim.UI\Resaerch.ArcSim.UI.csproj", "{68AE9C35-67FC-4693-826D-965901B20E1F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Research.ArcSim.Handler", "Research.ArcSim.Handler\Research.ArcSim.Handler.csproj", "{BD28EEBA-5402-41BF-A6FB-584C2157D186}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Research.ArcSim.Allocator", "Research.ArcSim.Allocator\Research.ArcSim.Allocator.csproj", "{04419ADE-02D6-46AB-9D83-9DFB5CFA611E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Research.ArcSim.Statistics", "Research.ArcSim.Statistics\Research.ArcSim.Statistics.csproj", "{6B86B3DB-2ED6-48B8-A875-3650677441DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Research.ArcSim.Desktop", "Research.ArcSim.Desktop\Research.ArcSim.Desktop.csproj", "{8DDB739A-3598-42A5-9382-3FD0F680A90C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,12 +53,6 @@ Global
 		{9D629CBB-4A0B-4592-8D3C-3E45E669EB1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9D629CBB-4A0B-4592-8D3C-3E45E669EB1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9D629CBB-4A0B-4592-8D3C-3E45E669EB1A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{68AE9C35-67FC-4693-826D-965901B20E1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{68AE9C35-67FC-4693-826D-965901B20E1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{68AE9C35-67FC-4693-826D-965901B20E1F}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{68AE9C35-67FC-4693-826D-965901B20E1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{68AE9C35-67FC-4693-826D-965901B20E1F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{68AE9C35-67FC-4693-826D-965901B20E1F}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{BD28EEBA-5402-41BF-A6FB-584C2157D186}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BD28EEBA-5402-41BF-A6FB-584C2157D186}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD28EEBA-5402-41BF-A6FB-584C2157D186}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -71,6 +65,10 @@ Global
 		{6B86B3DB-2ED6-48B8-A875-3650677441DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B86B3DB-2ED6-48B8-A875-3650677441DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B86B3DB-2ED6-48B8-A875-3650677441DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DDB739A-3598-42A5-9382-3FD0F680A90C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DDB739A-3598-42A5-9382-3FD0F680A90C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DDB739A-3598-42A5-9382-3FD0F680A90C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DDB739A-3598-42A5-9382-3FD0F680A90C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

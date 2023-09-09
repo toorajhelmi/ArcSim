@@ -14,24 +14,24 @@ using Research.ArcSim.Modeling.Logincal;
 
 var simulationConfig = new SimulationConfig();
 //var ecomm = new EcommerceSystem();
-//simulationConfig.SystemDefinition = new SystemDefinition
-//{
-//    Name = "Tiny System",
-//    ModuleCount = 3,
-//    AvgfunctionsPerModule = 3,
-//    InterModularDependency = ModuleDependency.None,
-//    IntraModularDependency = false,
-//    ActivityParallelization = Parallelization.InterActivity,   
-//};
 simulationConfig.SystemDefinition = new SystemDefinition
 {
-    Name = "Large System",
-    ModuleCount = 10,
-    AvgfunctionsPerModule = 10,
+    Name = "Tiny System",
+    ModuleCount = 3,
+    AvgfunctionsPerModule = 3,
     InterModularDependency = ModuleDependency.None,
     IntraModularDependency = false,
     ActivityParallelization = Parallelization.InterActivity,
 };
+//simulationConfig.SystemDefinition = new SystemDefinition
+//{
+//    Name = "Large System",
+//    ModuleCount = 10,
+//    AvgfunctionsPerModule = 10,
+//    InterModularDependency = ModuleDependency.None,
+//    IntraModularDependency = false,
+//    ActivityParallelization = Parallelization.InterActivity,
+//};
 
 simulationConfig.ComputingNodeConfig = new ComputingNodeConfig
 {
