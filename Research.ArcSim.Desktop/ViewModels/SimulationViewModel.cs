@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using Prism.Mvvm;
 using Research.ArcSim.Extensions;
 using Research.ArcSim.Modeling.Physical;
-using Microsoft.Maui.Graphics;
 
 namespace Research.ArcSim.Desktop.ViewModels
 {
@@ -60,8 +60,13 @@ namespace Research.ArcSim.Desktop.ViewModels
             public bool Exists { get; set; }
         }
 
-        public class SimulationViewModel
+        public class SimulationViewModel : BindableBase
         {
+            private const int defaultReqPerTime = 5;
+            private List<Node> nodes = new();
+            private List<Util> utils = new();
+            private List<Request> requests = new();
+
             public ObservableCollection<NodeAllocation> NodeAllocations { get; set; } = new();
             public ObservableCollection<int> TimeRange { get; set; } = new();
             public ObservableCollection<RequestAtTime> Requests { get; set; } = new();
@@ -69,62 +74,27 @@ namespace Research.ArcSim.Desktop.ViewModels
             public int MinTime { get; set; }
             public int MaxTime { get; set; } = 20;
             public int TimeUnit { get; set; } = 2;
-            public int ReqsPerTime { get; set; } = 5;
+            public int ReqsPerTime { get; set; } = defaultReqPerTime;
+            public Command ApplyCommnad { get; set; }
 
             public SimulationViewModel(List<ComputingNode> _nodes)
             {
-                var r = new Random();
-                var utils = new List<Util>();
-                var nodes = new List<Node>();
-                var requests = new List<Request>();
+                ApplyCommnad = new Command(Visualize);
+                GenerateSampleData();
+            }
 
-                for (var nodeId = 0; nodeId < 3; nodeId++)
-                {
-                    var node = new Node
-                    {
-                        NodeId = nodeId,
-                        Start = r.Next(20),
-                        End = 20 + r.Next(30),
-                        CoreCount = r.Next(3) + 1
-                    };
+            private void Visualize()
+            {
+                ReqsPerTime = defaultReqPerTime;
+                RaisePropertyChanged(nameof(ReqsPerTime));
 
-                    nodes.Add(node);
-                    for (var time = node.Start; time < node.End; time++)
-                    {
-                        node.CpuUtilization.Add((time, r.NextDouble() * 100));
-                        node.Cost.Add((time, r.NextDouble() * 10));
-                    }
-
-                    for (var coreIndex = 0; coreIndex < node.CoreCount; coreIndex++)
-                    {
-                        for (var start = node.Start; start < node.End;)
-                        {
-                            var duration = r.Next(5) + 1;
-
-                            var util = new Util
-                            {
-                                NodeId = nodeId,
-                                CoreIndex = coreIndex,
-                                Start = start,
-                                End = start + r.Next(duration) + 1,
-                                RequestId = r.Next(1000).ToString()
-                            };
-
-                            utils.Add(util);
-
-                            requests.Add(new Request
-                            {
-                                Id = util.RequestId,
-                                Start = util.Start,
-                                Dependencies = new()
-                            });
-
-                            start += duration + 1;
-                        }
-                    }
-                }
+                NodeAllocations.Clear();
+                Requests.Clear();
+                TimeRange.Clear();
 
                 var activeNodes = nodes.Where(n => n.Start >= MinTime && n.Start <= MaxTime);
+
+                var newAllocations = new List<NodeAllocation>();
 
                 foreach (var node in activeNodes)
                 {
@@ -136,7 +106,7 @@ namespace Research.ArcSim.Desktop.ViewModels
                         Cost = new()
                     };
 
-                    NodeAllocations.Add(nodeAlloc);
+                    newAllocations.Add(nodeAlloc);
 
                     var nodeUtils = utils.Where(u => u.NodeId == node.NodeId).OrderBy(u => u.Start);
 
@@ -179,12 +149,22 @@ namespace Research.ArcSim.Desktop.ViewModels
                     }
                 }
 
+                NodeAllocations.AddRange(newAllocations);
+
+                var newRequests = new List<RequestAtTime>();
+
                 for (var time = MinTime; time <= MaxTime; time += TimeUnit)
                 {
                     TimeRange.Add(time);
 
                     var reqsAtTime = requests.Where(r => r.Start >= time && r.Start < time + TimeUnit);
-                    Requests.AddRange(reqsAtTime.Select(r => new RequestAtTime
+
+                    if (reqsAtTime.Count() > ReqsPerTime)
+                    {
+                        ReqsPerTime = reqsAtTime.Count();        
+                    }
+
+                    newRequests.AddRange(reqsAtTime.Select(r => new RequestAtTime
                     {
                         Request = r,
                         Exists = true,
@@ -192,7 +172,62 @@ namespace Research.ArcSim.Desktop.ViewModels
 
                     for (int i = 0; i < ReqsPerTime - reqsAtTime.Count(); i++)
                     {
-                        Requests.Add(new RequestAtTime());
+                        newRequests.Add(new RequestAtTime());
+                    }
+                }
+
+                Requests.AddRange(newRequests);
+                RaisePropertyChanged(nameof(ReqsPerTime));
+            }
+
+            private void GenerateSampleData()
+            {
+                var r = new Random();
+
+                for (var nodeId = 0; nodeId < 3; nodeId++)
+                {
+                    var node = new Node
+                    {
+                        NodeId = nodeId,
+                        Start = r.Next(20),
+                        End = 20 + r.Next(30),
+                        CoreCount = r.Next(3) + 1
+                    };
+
+                    nodes.Add(node);
+
+                    for (var time = node.Start; time < node.End; time++)
+                    {
+                        node.CpuUtilization.Add((time, r.NextDouble() * 100));
+                        node.Cost.Add((time, r.NextDouble() * 10));
+                    }
+
+                    for (var coreIndex = 0; coreIndex < node.CoreCount; coreIndex++)
+                    {
+                        for (var start = node.Start; start < node.End;)
+                        {
+                            var duration = r.Next(5) + 1;
+
+                            var util = new Util
+                            {
+                                NodeId = nodeId,
+                                CoreIndex = coreIndex,
+                                Start = start,
+                                End = start + r.Next(duration) + 1,
+                                RequestId = r.Next(1000).ToString()
+                            };
+
+                            utils.Add(util);
+
+                            requests.Add(new Request
+                            {
+                                Id = util.RequestId,
+                                Start = util.Start,
+                                Dependencies = new()
+                            });
+
+                            start += duration + 1;
+                        }
                     }
                 }
             }
