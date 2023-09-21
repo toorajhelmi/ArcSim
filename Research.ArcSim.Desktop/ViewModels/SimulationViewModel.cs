@@ -1,236 +1,202 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Windows.Input;
 using Prism.Mvvm;
-using Research.ArcSim.Extensions;
+using Research.ArcSim.Allocators;
+using Research.ArcSim.Builders;
+using Research.ArcSim.Handler;
+using Research.ArcSim.Modeling.Arc;
+using Research.ArcSim.Modeling.Common;
+using Research.ArcSim.Modeling.Logical;
+using Research.ArcSim.Modeling.Logincal;
 using Research.ArcSim.Modeling.Physical;
+using Research.ArcSim.Modeling.Simulation;
+using Research.ArcSim.Samples;
+using Rsearch.ArcSim.Simulator;
+using Location = Research.ArcSim.Modeling.Simulation.Location;
 
 namespace Research.ArcSim.Desktop.ViewModels
 {
-    public class Node
+    public class SimulationViewModel: BindableBase
     {
-        public int NodeId { get; set; }
-        public List<(int Time, double Util)> CpuUtilization { get; set; } = new();
-        public List<(int Time, double Amount)> Cost { get; set; } = new();
-        public int Start { get; set; }
-        public int End { get; set; }
-        public int CoreCount { get; set; }
-    }
+        private List<SimulationResult> results = new();
+        public string SimulationParameters { get; set; }
+        public SystemDefViewModel SystemDefViewModel { get; set; } = new SystemDefViewModel();
+        public OutputViewModel OutputViewModel { get; set; } = new OutputViewModel();
+        public Command RunCommand { get; set; }
 
-    public class Util
-    {
-        public int NodeId { get; set; }
-        public int CoreIndex { get; set; }
-        public int Start { get; set; }
-        public int End { get; set; }
-        public string RequestId { get; set; }
-    }
-
-    public class Request
-    {
-        public string Id { get; set; }
-        public Request Parent { get; set; }
-        public List<Request> Dependencies { get; set; } = new();
-        public int Start
+        public SimulationViewModel()
         {
-            get; set;
+            RunCommand = new Command(Run);
         }
 
-        //^^^ are for testing. These should be passed from the actual sim
-
-        public class Allocation
+        public void Run()
         {
-            public bool Allocated { get; set; }
-            public int CoreIndex { get; set; }
-            public string RequestId { get; set; }
-            public int Start { get; set; }
-            public int End { get; set; }
-        }
+            OutputViewModel.Output = "";
 
-        public class NodeAllocation
-        {
-            public int NodeId { get; set; }
-            public int CoreCount { get; set; }
-            public ObservableCollection<Allocation> Allocations { get; set; } = new();
-            public ObservableCollection<double> CpuUtilization { get; set; }
-            public ObservableCollection<double> Cost { get; set; }
-        }
-
-        public class RequestAtTime
-        {
-            public Request Request { get; set; }
-            public bool Exists { get; set; }
-        }
-
-        public class SimulationViewModel : BindableBase
-        {
-            private const int defaultReqPerTime = 5;
-            private List<Node> nodes = new();
-            private List<Util> utils = new();
-            private List<Request> requests = new();
-
-            public ObservableCollection<NodeAllocation> NodeAllocations { get; set; } = new();
-            public ObservableCollection<int> TimeRange { get; set; } = new();
-            public ObservableCollection<RequestAtTime> Requests { get; set; } = new();
-
-            public int MinTime { get; set; }
-            public int MaxTime { get; set; } = 20;
-            public int TimeUnit { get; set; } = 2;
-            public int ReqsPerTime { get; set; } = defaultReqPerTime;
-            public Command ApplyCommnad { get; set; }
-
-            public SimulationViewModel(List<ComputingNode> _nodes)
+            var simulationConfig = new SimulationConfig();
+            //var ecomm = new EcommerceSystem();
+            simulationConfig.SystemDefinition = new SystemDefinition
             {
-                ApplyCommnad = new Command(Visualize);
-                GenerateSampleData();
-            }
+                Name = "Tiny System",
+                ModuleCount = 3,
+                AvgfunctionsPerModule = 3,
+                InterModularDependency = ModuleDependency.None,
+                IntraModularDependency = false,
+                ActivityParallelization = Parallelization.InterActivity,
+            };
+            //simulationConfig.SystemDefinition = new SystemDefinition
+            //{
+            //    Name = "Large System",
+            //    ModuleCount = 10,
+            //    AvgfunctionsPerModule = 10,
+            //    InterModularDependency = ModuleDependency.None,
+            //    IntraModularDependency = false,
+            //    ActivityParallelization = Parallelization.InterActivity,
+            //};
 
-            private void Visualize()
+            simulationConfig.ComputingNodeConfig = new ComputingNodeConfig
             {
-                ReqsPerTime = defaultReqPerTime;
-                RaisePropertyChanged(nameof(ReqsPerTime));
+                Nic = Nic.CpuDependent,
+                Sku = Sku.Range,
+                Location = Location.Cloud
+            };
 
-                NodeAllocations.Clear();
-                Requests.Clear();
-                TimeRange.Clear();
+            var executionProfile = new ExecutionDemand(
+                processingLevel: DemandLevel.Medium,
+                memoryLevel: DemandLevel.High,
+                bandwithLevel: DemandLevel.High);
 
-                var activeNodes = nodes.Where(n => n.Start >= MinTime && n.Start <= MaxTime);
+            simulationConfig.SimulationStrategy = new SimulationStrategy
+            {
+                TotalCost = 10000000,
+                MaxResponseTime = 1000,
+                RequestDistribution = RequestDistribution.Uniform,
+                SimulationDurationSecs = 1 * Units.Minute / 1000,
+                AvgReqPerSecond = 6
+            };
 
-                var newAllocations = new List<NodeAllocation>();
+            simulationConfig.HandlingStrategy = new HandlingStrategy
+            {
+                SkipExpiredRequests = false
+            };
 
-                foreach (var node in activeNodes)
+            simulationConfig.AllocationStrategy = new AllocationStrategy
+            {
+                HorizontalScalingConfig = new HorizontalScalingConfig
                 {
-                    var nodeAlloc = new NodeAllocation
+                    HorizonalScaling = HorizonalScaling.CpuControlled,
+                    LoadBalancingStrategy = LoadBalancingStrategy.RoundRobin,
+                    MinCpuUtilization = 30,
+                    MaxCpuUtilization = 70,
+                    MinInstances = 1,
+                    MaxInstances = 10,
+                    DefaultInstance = 1,
+                    CooldownPeriod = 5 * Units.Minute
+                }
+            };
+
+            Mandates.Add(new Mandate<DeploymentStyle, Stickiness>(
+                new List<(DeploymentStyle, Stickiness)> { (DeploymentStyle.Serverless, Stickiness.OnDemand) },
+                Stickiness.Upfront));
+
+            var internet = new BandwidthProfile(12.5 * Units.MB);
+            var intranet = new BandwidthProfile(100 * Units.MB);
+
+            simulationConfig.Bandwidth = new Bandwidth(internet, intranet);
+
+            var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
+
+            SystemGenerator.Instance.ShowSystem(system);
+
+            foreach (var serverStyle in new[] {
+                DeploymentStyle.Microservices,
+                //DeploymentStyle.Serverless,
+                //DeploymentStyle.Layered,
+                //DeploymentStyle.Monolith
+            })
+            {
+                foreach (var processingMode in new[] {
+                    ProcessingMode.FireForget,
+                    //ProcessingMode.Queued,
+                })
+                {
+                    RunForConfig(simulationConfig, system, serverStyle, processingMode);
+                }
+            }
+        }
+
+        private void RunForConfig(SimulationConfig simulationConfig, Modeling.System system, DeploymentStyle serverStyle, ProcessingMode processingMode)
+        {
+            simulationConfig.Arch = new Arch
+            {
+                DeploymentStyle = serverStyle,
+                ProcessingMode = processingMode,
+            };
+
+            simulationConfig.AllocationStrategy.Stickiness = Mandates.Get<DeploymentStyle, Stickiness>().GetFor(simulationConfig.Arch.DeploymentStyle);
+
+            var impl = Builder.Instance.Build(system, simulationConfig.Arch, SystemDefViewModel);
+            Builder.Instance.ShowImplementation();
+
+            FireForgetHandler.Create(simulationConfig);
+            Allocator.Create(simulationConfig, impl);
+            //Allocator.Create(simulationStrategy, costProfile, impl, new Bandwidth(0.001 * Units.MB_KB, 0.9, false));
+            Simulator.Create(simulationConfig, system, OutputViewModel);
+            Simulator.Instance.Run(impl);
+            StoreResults(simulationConfig);
+            var requests = Simulation.Instance.requests.Values.SelectMany(r => r).Select(r => new Request
+            {
+                Id = r.Id.ToString(),
+                Start = r.ServingActivity.StartTime,
+                Notes = $"DEPS: [{string.Join(',', r.ServingActivity.Definition.Dependencies.Select(d => d.Id))}] EP: [{r.ServingActivity.Definition.ExecutionProfile}]"
+            }).ToList();
+            ResultsViewModel.Instance.LoadResults(results, requests);
+        }
+
+        private void StoreResults(SimulationConfig simulationConfig)
+        {
+            var simulationResult = new SimulationResult();
+
+            foreach (var node in Allocator.Instance.Allocations.GroupBy(a => a.ComputingNode))
+            {
+                simulationResult.Conig = simulationConfig;
+
+                //var nodeResults = new NodeResult();
+                foreach (var coreUtilization in node.Key.Utilizations)
+                {
+                    //var coreCombinedUtil = node.Key.CombineUtilizations(coreUtilization.Utilization);
+                    foreach (var utillization in coreUtilization.Utilization)
                     {
-                        NodeId = node.NodeId,
-                        CoreCount = node.CoreCount,
-                        CpuUtilization = new(),
-                        Cost = new()
-                    };
-
-                    newAllocations.Add(nodeAlloc);
-
-                    var nodeUtils = utils.Where(u => u.NodeId == node.NodeId).OrderBy(u => u.Start);
-
-                    for (int time = MinTime; time <= MaxTime; time += TimeUnit)
-                    {
-                        for (var coreIndex = 0; coreIndex < node.CoreCount; coreIndex++)
+                        var coreUtil = new CoreUtil
                         {
-                            var coreUtils = nodeUtils.Where(u => u.CoreIndex == coreIndex);
+                            NodeId = node.Key.Id,
+                            CoreIndex = coreUtilization.Core,
+                            Start = utillization.StartTime,
+                            End = utillization.EndTime,
+                            RequestId = utillization.Request.Id.ToString()
+                        };
 
-                            var coreUtil = coreUtils.FirstOrDefault(u => u.Start >= time && u.Start < time + TimeUnit);
-                            if (coreUtil != null)
-                            {
-                                nodeAlloc.Allocations.Add(new Allocation
-                                {
-                                    Allocated = true,
-                                    CoreIndex = coreUtil.CoreIndex,
-                                    RequestId = coreUtil.RequestId,
-                                });
-                            }
-                            else
-                            {
-                                nodeAlloc.Allocations.Add(new Allocation
-                                {
-                                    Allocated = false
-                                });
-                            }
-                        }
-
-                        var cpuUtils = node.CpuUtilization.Where(cu => cu.Time >= time && cu.Time < time + TimeUnit);
-                        if (cpuUtils.Any())
-                            nodeAlloc.CpuUtilization.Add(cpuUtils.Average(cu => cu.Util));
-                        else
-                            nodeAlloc.CpuUtilization.Add(0);
-
-                        var costs = node.Cost.Where(c => c.Time >= time && c.Time < time + TimeUnit);
-                        if (costs.Any())
-                            nodeAlloc.Cost.Add(costs.Average(c => c.Amount));
-                        else
-                            nodeAlloc.Cost.Add(0);
+                        simulationResult.CoreUtils.Add(coreUtil);
                     }
                 }
 
-                NodeAllocations.AddRange(newAllocations);
-
-                var newRequests = new List<RequestAtTime>();
-
-                for (var time = MinTime; time <= MaxTime; time += TimeUnit)
+                var nodeResult = new NodeResult
                 {
-                    TimeRange.Add(time);
+                    NodeId = node.Key.Id,
+                    CoreCount = node.Key.Utilizations.Count,
+                    Start = simulationResult.CoreUtils.Min(cu => cu.Start),
+                    End = simulationResult.CoreUtils.Max(cu => cu.End),
+                };
 
-                    var reqsAtTime = requests.Where(r => r.Start >= time && r.Start < time + TimeUnit);
-
-                    if (reqsAtTime.Count() > ReqsPerTime)
-                    {
-                        ReqsPerTime = reqsAtTime.Count();        
-                    }
-
-                    newRequests.AddRange(reqsAtTime.Select(r => new RequestAtTime
-                    {
-                        Request = r,
-                        Exists = true,
-                    }));
-
-                    for (int i = 0; i < ReqsPerTime - reqsAtTime.Count(); i++)
-                    {
-                        newRequests.Add(new RequestAtTime());
-                    }
+                for (int time = nodeResult.Start + Units.Sec; time < nodeResult.End; time += Units.Sec)
+                {
+                    nodeResult.CpuUtilization.Add((time - Units.Sec, node.Key.GetCpuUtilizationPercent(time, Units.Sec)));
                 }
 
-                Requests.AddRange(newRequests);
-                RaisePropertyChanged(nameof(ReqsPerTime));
+                simulationResult.NodeResults.Add(nodeResult);
             }
 
-            private void GenerateSampleData()
-            {
-                var r = new Random();
-
-                for (var nodeId = 0; nodeId < 3; nodeId++)
-                {
-                    var node = new Node
-                    {
-                        NodeId = nodeId,
-                        Start = r.Next(20),
-                        End = 20 + r.Next(30),
-                        CoreCount = r.Next(3) + 1
-                    };
-
-                    nodes.Add(node);
-
-                    for (var time = node.Start; time < node.End; time++)
-                    {
-                        node.CpuUtilization.Add((time, r.NextDouble() * 100));
-                        node.Cost.Add((time, r.NextDouble() * 10));
-                    }
-
-                    for (var coreIndex = 0; coreIndex < node.CoreCount; coreIndex++)
-                    {
-                        for (var start = node.Start; start < node.End;)
-                        {
-                            var duration = r.Next(5) + 1;
-
-                            var util = new Util
-                            {
-                                NodeId = nodeId,
-                                CoreIndex = coreIndex,
-                                Start = start,
-                                End = start + r.Next(duration) + 1,
-                                RequestId = r.Next(1000).ToString()
-                            };
-
-                            utils.Add(util);
-
-                            requests.Add(new Request
-                            {
-                                Id = util.RequestId,
-                                Start = util.Start,
-                                Dependencies = new()
-                            });
-
-                            start += duration + 1;
-                        }
-                    }
-                }
-            }
+            results.Add(simulationResult);
         }
     }
 }
+

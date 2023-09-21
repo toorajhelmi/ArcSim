@@ -94,26 +94,26 @@ namespace Research.ArcSim.Modeling.Physical
             utilization.ProcessingMSec = (int)(request.ServingActivity.Definition.ExecutionProfile.PP.DemandMilliCpuSec / vCpu);
             utilization.TransmissionMSec = (int)trasmissionMSec;
             if (request.GetScope() == RequestScope.Internet)
-                utilization.InternetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB_KB;
+                utilization.InternetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB;
             else if (request.GetScope() == RequestScope.Internet)
-                utilization.IntranetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB_KB;
+                utilization.IntranetBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB;
             else
-                utilization.LocalBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB_KB;
+                utilization.LocalBandwidthMB = request.ServingActivity.Definition.ExecutionProfile.BP.DemandKB / Units.MB;
 
             return new Response(true);
         }
 
-        public AggregatedUtilizaion GetUtilization(CostProfile costProfile)
+        public AggregatedUtilizaion GetUtilization()
         {
-            var combinedUtilizations = CombineUtilizations();
+            var combinedUtilizations = CombineUtilizations(Utilizations.SelectMany(u => u.Utilization));
             var totalUtilization = new AggregatedUtilizaion
             {
                 StartTime = combinedUtilizations.First().StartTime,
                 EndTime = combinedUtilizations.Last().EndTime,
                 AggDurationMSec = combinedUtilizations.Sum(cu => cu.TotalMSec),
-                InternetBandwidthMB = combinedUtilizations.Sum(cu => cu.InternetBandwidthMB) / Units.MB_KB,
-                IntranetBandwidthMB = combinedUtilizations.Sum(cu => cu.IntranetBandwidthMB) / Units.MB_KB,
-                LocalBandwidthMB = combinedUtilizations.Sum(cu => cu.LocalBandwidthMB) / Units.MB_KB,
+                InternetBandwidthMB = combinedUtilizations.Sum(cu => cu.InternetBandwidthMB) / Units.MB,
+                IntranetBandwidthMB = combinedUtilizations.Sum(cu => cu.IntranetBandwidthMB) / Units.MB,
+                LocalBandwidthMB = combinedUtilizations.Sum(cu => cu.LocalBandwidthMB) / Units.MB,
             };
 
             return totalUtilization;
@@ -123,15 +123,14 @@ namespace Research.ArcSim.Modeling.Physical
         {
             var duration = simulationConfig.AllocationStrategy.Stickiness == Stickiness.OnDemand ? utilization.AggDurationMSec : utilization.EndTime - utilization.StartTime;
                 
-            utilization.CpuCost = vCpu * duration * costProfile.vCpuPerHour / Units.Hour_Millisec;
-            utilization.MemoryCost = MemoryMB * duration * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour_Millisec;
-            utilization.NetworkCost = utilization.InternetBandwidthMB * costProfile.BandwidthCostPerGBInternet / Units.GB_KB +
+            utilization.CpuCost = vCpu * duration * costProfile.vCpuPerHour / Units.Hour;
+            utilization.MemoryCost = MemoryMB * duration * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour;
+            utilization.NetworkCost = utilization.InternetBandwidthMB * costProfile.BandwidthCostPerGBInternet / Units.GB +
                 utilization.IntranetBandwidthMB * costProfile.BandwidthCostPerGBIntranet;
         }
 
-        public int GetCpuUtilizationPercent(int window = Units.Minute)
+        public int GetCpuUtilizationPercent(int now, int window = Units.Minute)
         {
-            var now = Simulation.Simulation.Instance.Now;
             var since = int.Max(0, now - window);
 
             var utilizedCores = Utilizations.Where(u => u.Utilization.Any());
@@ -143,19 +142,18 @@ namespace Research.ArcSim.Modeling.Physical
 
             foreach (var coreUtil in utilizedCores)
             {
-                var endedWithinWindow = coreUtil.Utilization.Where(u => u.EndTime == 0 || u.EndTime > since);
-                utilizedTime += endedWithinWindow.Sum(u => u.EndTime == 0 ? now : u.EndTime - int.Max(since, u.StartTime));
+                var endedWithinWindow = coreUtil.Utilization.Where(u => (u.EndTime == 0 || u.EndTime > since) && u.StartTime < now);
+                utilizedTime += endedWithinWindow.Sum(u => (u.EndTime == 0 ? now : int.Min(u.EndTime, now)) - int.Max(since, u.StartTime));
             }
 
-            return 100 * utilizedTime / (utilizedCores.Count() * window);
+            return 100 * utilizedTime / (Utilizations.Count * window);
         }
 
-        private List<AggregatedUtilizaion> CombineUtilizations()
+        public List<AggregatedUtilizaion> CombineUtilizations(IEnumerable<Utilization> utilizations)
         {
             if (!Utilizations.Any())
                 return new List<AggregatedUtilizaion>();
 
-            var utilizations = Utilizations.SelectMany(u => u.Utilization);
             var sortedUtilizations = utilizations.OrderBy(u => u.StartTime).ToList();
 
             var result = new List<AggregatedUtilizaion>();

@@ -1,9 +1,8 @@
-﻿using System;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using Research.ArcSim.Allocator;
+using Research.ArcSim.Allocators;
+using Research.ArcSim.Extensions;
 using Research.ArcSim.Handler;
-using Research.ArcSim.Modeling;
 using Research.ArcSim.Modeling.Core;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Simulation;
@@ -12,25 +11,26 @@ using AS = Research.ArcSim.Modeling;
 
 namespace Rsearch.ArcSim.Simulator
 {
-	public class Simulator
+    public class Simulator
 	{
 		private SimulationConfig simulationConfig;
         private SimulationStrategy simulationStrategy;
         private AS.System system;
+		private IConsole console;
         private List<Request> originalRequests = new();
         public static Simulator Instance { private set; get; }
 
-		public static void Create(SimulationConfig simulationConfig, AS.System system)
+		public static void Create(SimulationConfig simulationConfig, AS.System system, IConsole console)
 		{
 			Instance = new Simulator
 			{
 				simulationConfig = simulationConfig,
 				simulationStrategy = simulationConfig.SimulationStrategy,
-				system = system
+				system = system,
+				console = console
 			};
 			Simulation.Create();
 			StatisticsCalculator<Activity>.Create();
-
         }
 			
         public void Run(LogicalImplementation implementation)
@@ -55,7 +55,7 @@ namespace Rsearch.ArcSim.Simulator
 							FireForgetHandler.Instance.Handle(request);
 							if (Simulation.Instance.Terminated)
 							{
-								Console.WriteLine($"Terminated... {Simulation.Instance.TerminationReason.Item1}");
+								console.WriteLine($"Terminated... {Simulation.Instance.TerminationReason.Item1}");
 								return;
 							}
 						}
@@ -70,7 +70,7 @@ namespace Rsearch.ArcSim.Simulator
             StatisticsCalculator<Activity>.Instance.Log(() =>
 				originalRequests.Select(r => r.ServingActivity).ToList());
 
-			Console.WriteLine();
+			console.WriteLine();
             ShowReport();
 
 			Allocator.Instance.ShowReport(new Allocator.ReportSettings
@@ -83,7 +83,7 @@ namespace Rsearch.ArcSim.Simulator
 			var bugs = StatisticsCalculator<Activity>.Instance.Any(s => s.ProcessingTime < 0);
 			if (bugs.Any())
 			{
-				Console.WriteLine("BUGS: NAGATIVE PROCESSING TIME:");
+				console.WriteLine("BUGS: NAGATIVE PROCESSING TIME:");
 				foreach (var activity in bugs)
 				{
 					activity.ShowActivityTree(0);
@@ -98,7 +98,7 @@ namespace Rsearch.ArcSim.Simulator
 
             int progress = index * 100 / Simulation.Instance.requests.Count;
 
-			Console.Write("\r" + "Running Simulation: {0}%, {1}sec", progress, Simulation.Instance.Now / 1000); //, spinners[Simulation.Instance.Now % spinners.Length]);
+			console.ShowProgress("\r" + "Running Simulation: {0}%, {1}sec", progress, Simulation.Instance.Now / 1000); //, spinners[Simulation.Instance.Now % spinners.Length]);
             //Thread.Sleep(animationDelay);
         }
 
@@ -113,14 +113,14 @@ namespace Rsearch.ArcSim.Simulator
             var completedOriginalRequests = originalRequests.Where(r => r.ServingActivity.Completed).Select(r => r.ServingActivity);
 			var completedAllRequests = originalRequests.SelectMany(or => or.ServingActivity.Flatten());
 
-            Console.WriteLine();
-            Console.WriteLine("Simulation Report");
-            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(simulationConfig, jsonOptions));
-            Console.WriteLine($"Simulation completed after {Simulation.Instance.Now / 1000} seconds.");
-            Console.WriteLine($"Request Count (Orig|All): {completedOriginalRequests.Count()}|{completedAllRequests.Count()}");
-            Console.WriteLine($"Completed Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Completed, Stat.Percentage):0.00}%");
-            Console.WriteLine($"Expired Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Expired, Stat.Percentage):0.00}%");
-            Console.WriteLine($"Avg Proc Time mSec (Orig|All): {completedOriginalRequests.Average(r => r.ProcessingTime):0}|{completedAllRequests.Average(r => r.ProcessingTime):0}");
+            console.WriteLine();
+            console.WriteLine("Simulation Report");
+            console.WriteLine(System.Text.Json.JsonSerializer.Serialize(simulationConfig, jsonOptions));
+            console.WriteLine($"Simulation completed after {Simulation.Instance.Now / 1000} seconds.");
+            console.WriteLine($"Request Count (Orig|All): {completedOriginalRequests.Count()}|{completedAllRequests.Count()}");
+            console.WriteLine($"Completed Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Completed, Stat.Percentage):0.00}%");
+            console.WriteLine($"Expired Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Expired, Stat.Percentage):0.00}%");
+            console.WriteLine($"Avg Proc Time mSec (Orig|All): {completedOriginalRequests.Average(r => r.ProcessingTime):0}|{completedAllRequests.Average(r => r.ProcessingTime):0}");
         }
 
         private void GenerateRequests()

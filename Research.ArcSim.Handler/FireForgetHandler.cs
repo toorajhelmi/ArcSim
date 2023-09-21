@@ -1,4 +1,5 @@
-﻿using Research.ArcSim.Modeling.Arc;
+﻿using Research.ArcSim.Allocators;
+using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Simulation;
 
@@ -26,7 +27,7 @@ public class FireForgetHandler : IHandler
 
     public void Handle(Request request)
     {
-        var cn = Allocator.Allocator.Instance.GetServingNode(request);
+        var cn = Allocator.Instance.GetServingNode(request);
         if (cn == null)
         {
             request.ServingActivity.Failed = true;

@@ -12,14 +12,16 @@ namespace Research.ArcSim.Samples
 {
 	public class SystemGenerator
 	{
-        public static SystemGenerator Instance { get; }
         static SystemGenerator() => Instance = new();
         private ExecutionDemand executionProfile;
+        private IConsole console;
+        public static SystemGenerator Instance { get; }
 
         public AS.System GenerateSystem(SystemDefinition definition, bool randomizeSystem,
-            bool randomizeDemand, ExecutionDemand executionProfile = null)
+            bool randomizeDemand, IConsole console, ExecutionDemand executionProfile = null)
         {
             this.executionProfile = executionProfile;
+            this.console = console;
             var system = GenerateSystem(definition, randomizeSystem);
             system.SystemDefinition = definition;
 
@@ -47,29 +49,29 @@ namespace Research.ArcSim.Samples
         {
             var activities = system.Modules.SelectMany(m => m.Functions.SelectMany(f => f.Activities)).ToList();
 
-            Console.WriteLine(new string('=', 30));
-            Console.WriteLine($"Name: {system.SystemDefinition.Name}");
-            Console.WriteLine($"{system.Modules.Count} Modules");
-            Console.WriteLine($"{system.Modules.Average(m => m.Functions.Count)} Avg Functions per Module");
-            Console.WriteLine($"{system.Modules.Average(m => m.Functions.Average(f => f.Activities.Count)):0.00} Avg Activities per Function");
-            Console.WriteLine($"{activities.Average(a => a.Dependencies.Count(d => a.Function.Module == d.Function.Module)):0.00} Avg Intra-Modular Dependency");
-            Console.WriteLine($"{activities.Average(a => a.Dependencies.Count(d => a.Function.Module != d.Function.Module)):0.00} Avg Inter-Modular Dependency");
-            Console.WriteLine($"Execution Profile:");
-            Console.WriteLine($"- CPU: {executionProfile.PP.DemandMilliCpuSec}vCpu x MilliSec");
-            Console.WriteLine($"- Mem: {executionProfile.MP.DemandMB}MB");
-            Console.WriteLine($"- Net: {executionProfile.BP.DemandKB}KB");
-            Console.WriteLine(new string('=', 30));
-            Console.WriteLine();
+            console.WriteLine(new string('=', 30));
+            console.WriteLine($"Name: {system.SystemDefinition.Name}");
+            console.WriteLine($"{system.Modules.Count} Modules");
+            console.WriteLine($"{system.Modules.Average(m => m.Functions.Count)} Avg Functions per Module");
+            console.WriteLine($"{system.Modules.Average(m => m.Functions.Average(f => f.Activities.Count)):0.00} Avg Activities per Function");
+            console.WriteLine($"{activities.Average(a => a.Dependencies.Count(d => a.Function.Module == d.Function.Module)):0.00} Avg Intra-Modular Dependency");
+            console.WriteLine($"{activities.Average(a => a.Dependencies.Count(d => a.Function.Module != d.Function.Module)):0.00} Avg Inter-Modular Dependency");
+            console.WriteLine($"Execution Profile:");
+            console.WriteLine($"- CPU: {executionProfile.PP.DemandMilliCpuSec}vCpu x MilliSec");
+            console.WriteLine($"- Mem: {executionProfile.MP.DemandMB}MB");
+            console.WriteLine($"- Net: {executionProfile.BP.DemandKB}KB");
+            console.WriteLine(new string('=', 30));
+            console.WriteLine();
 
             //foreach (var modelule in system.Modules)
             //{
-            //    Console.WriteLine(new string('=', 30));
-            //    Console.WriteLine($"Module Name: {modelule.Name}, Functions Count : {system.Modules.Count}");
-            //    Console.WriteLine(new string('=', 30));
+            //    console.WriteLine(new string('=', 30));
+            //    console.WriteLine($"Module Name: {modelule.Name}, Functions Count : {system.Modules.Count}");
+            //    console.WriteLine(new string('=', 30));
 
             //    foreach (var function in modelule.Functions)
             //    {
-            //        Console.WriteLine($"Module Name: {modelule.Name}");
+            //        console.WriteLine($"Module Name: {modelule.Name}");
             //    }
             //}
 

@@ -8,5 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Research.ArcSim.Modeling\Research.ArcSim.Modeling.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Extensions\Research.ArcSim.Extensions.csproj" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
-﻿using Research.ArcSim.Modeling.Logical;
+﻿using Research.ArcSim.Allocators;
+using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Physical;
 using Research.ArcSim.Modeling.Simulation;
 
@@ -38,7 +39,7 @@ public class QueuedHandler : IHandler
             {
                 while (true)
                 {
-                    var cn = Allocator.Allocator.Instance.GetServingNode(kv.Value.First());
+                    var cn = Allocator.Instance.GetServingNode(kv.Value.First());
                     if (cn != null)
                     {
                         var head = kv.Value.Dequeue();
@@ -129,7 +130,7 @@ public class QueuedHandler : IHandler
             request.ServingActivity.Succeeded = true;
         }
 
-        Allocator.Allocator.Instance.FreeUp(cn, request.ServingActivity.EndTime);
+        Allocator.Instance.FreeUp(cn, request.ServingActivity.EndTime);
     }
 }
 

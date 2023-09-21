@@ -2,7 +2,7 @@
 using Research.ArcSim.Modeling;
 using Research.ArcSim.Modeling.Physical;
 
-namespace Research.ArcSim.Allocator
+namespace Research.ArcSim.Allocators
 {
 	public class Allocation
 	{

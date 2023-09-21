@@ -14,5 +14,6 @@
     <ProjectReference Include="..\Rsearch.ArcSim.Simulator\Rsearch.ArcSim.Simulator.csproj" />
     <ProjectReference Include="..\Research.ArcSim.Allocator\Research.ArcSim.Allocator.csproj" />
     <ProjectReference Include="..\Research.ArcSim.Handler\Research.ArcSim.Handler.csproj" />
+    <ProjectReference Include="..\Research.ArcSim.Extensions\Research.ArcSim.Extensions.csproj" />
   </ItemGroup>
 </Project>

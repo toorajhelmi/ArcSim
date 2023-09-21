@@ -7,146 +7,168 @@
     <ContentPage.Resources>
         <v:ReqIdToColor x:Key="ReqIdToColor"/>
     </ContentPage.Resources>
-    <ScrollView>
-        <Grid HorizontalOptions="FillAndExpand">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"/>
-                <ColumnDefinition Width="200"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Frame Grid.Column="0" Background="Black" Padding="0" BackgroundColor="White" BorderColor="DarkGrey" CornerRadius="0">
-                <StackLayout Padding="5">
-                    <Label Text="Min Time"/>
-                    <Editor Placeholder="In Seconds" Text="{Binding MinTime}" TextColor="White" BackgroundColor="#5F6369"/>
-                    <Label Text="Max Time" Margin="0,10,0,0"/>
-                    <Editor Placeholder="In Seconds" Text="{Binding MaxTime}" TextColor="White" BackgroundColor="#5F6369"/>
-                    <Label Text="Time Step" Margin="0,10,0,0"/>
-                    <Editor Placeholder="In Seconds" Text="{Binding TimeUnit}" TextColor="White" BackgroundColor="#5F6369"/>
-                    <Button Margin="0,10,0,0" Text="Apply" Command="{Binding ApplyCommnad}" BackgroundColor="Black" TextColor="Wheat" BorderColor="White"/>
-                </StackLayout>
-            </Frame>
-            <Grid Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="20"/>
-                    <RowDefinition Height="20"/>
-                    <RowDefinition/>
-                </Grid.RowDefinitions>
-                <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="#5F6369">    
-                    <Label Text="Requests" HorizontalOptions="Center" VerticalOptions="Center"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="200"/>
+        </Grid.RowDefinitions>
+        <ScrollView>
+            <Grid HorizontalOptions="FillAndExpand">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="400"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Frame Grid.Column="0" Background="Black" Padding="0" BackgroundColor="White" BorderColor="DarkGrey" CornerRadius="0">
+                    <StackLayout Padding="5">
+                        <Label Text="Min Time"/>
+                        <Editor Placeholder="In Seconds" Text="{Binding MinTime}" TextColor="White" BackgroundColor="#5F6369"/>
+                        <Label Text="Max Time" Margin="0,10,0,0"/>
+                        <Editor Placeholder="In Seconds" Text="{Binding MaxTime}" TextColor="White" BackgroundColor="#5F6369"/>
+                        <Label Text="Time Step" Margin="0,10,0,0"/>
+                        <Editor Placeholder="In Seconds" Text="{Binding TimeUnit}" TextColor="White" BackgroundColor="#5F6369"/>
+                        <Button Margin="0,10,0,0" Text="Apply" Command="{Binding ApplyCommnad}" BackgroundColor="Black" TextColor="Wheat" BorderColor="White"/>
+                    </StackLayout>
+                </Frame>
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="#5F6369">    
+                        <Label Text="Requests" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Grid>
+                    <CollectionView Grid.Row="2" ItemsSource="{Binding Requests}">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="{Binding ReqsPerTime}" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                               <Grid>
+                                    <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
+                                                IsVisible="{Binding Exists}" BackgroundColor="{Binding Request.Id, Converter={StaticResource ReqIdToColor}}" ToolTipProperties.Text="{Binding Request.Notes}">
+                                            <Label Text="{Binding Request.Id}" HorizontalOptions="Center"/>
+                                    </Frame>
+                                    <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
+                                           IsVisible="{Binding Exists, Converter={StaticResource NotConverter}}">                                   
+                                    </Frame>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
                 </Grid>
-                <CollectionView Grid.Row="2" ItemsSource="{Binding Requests}">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="{Binding ReqsPerTime}" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                           <Grid>
-                                <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
-                                            IsVisible="{Binding Exists}" BackgroundColor="{Binding Request.Id, Converter={StaticResource ReqIdToColor}}">
-                                        <Label Text="{Binding Request.Id}" HorizontalOptions="Center"/>
+                <Grid Grid.Column="2" WidthRequest="50">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="LightGray">    
+                        <Label Text="t" HorizontalOptions="Center" VerticalOptions="Center" TextColor="Black"/>
+                    </Grid>
+                    <!-- Time -->
+                    <CollectionView Grid.Row="2" ItemsSource="{Binding TimeRange}">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame BorderColor="White" BackgroundColor="LightGray" Padding="0" WidthRequest="40"        HeightRequest="15" CornerRadius="0">
+                                    <Label Text="{Binding}" HorizontalOptions="Center" TextColor="Black" FontSize="10"/>
                                 </Frame>
-                                <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
-                                       IsVisible="{Binding Exists, Converter={StaticResource NotConverter}}">                                   
-                                </Frame>
-                            </Grid>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
-            <Grid Grid.Column="2" WidthRequest="50">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="20"/>
-                    <RowDefinition Height="20"/>
-                    <RowDefinition/>
-                </Grid.RowDefinitions>
-                <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="#5F6369">    
-                    <Label Text="t" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
                 </Grid>
-                <!-- Time -->
-                <CollectionView Grid.Row="2" ItemsSource="{Binding TimeRange}">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Vertical" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Frame BorderColor="White" BackgroundColor="LightGray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0">
-                                <Label Text="{Binding}" HorizontalOptions="Center" TextColor="Black"/>
-                            </Frame>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
-            <Grid Grid.Column="3">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="20"/>
-                    <RowDefinition/>
-                </Grid.RowDefinitions>
-                <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="DarkGray">
-                    <Label Text="Allocation" HorizontalOptions="Center" TextColor="Black"/>
-                </Grid>
-                <CollectionView Grid.Row="1" ItemsSource="{Binding NodeAllocations}" HorizontalOptions="FillAndExpand">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Horizontal" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <StackLayout>
-                                <Label Text="{Binding NodeId}" HorizontalOptions="Center" HeightRequest="20"/>
-                                <Frame Padding="0" BorderColor="White" CornerRadius="0">
-                                    <HorizontalStackLayout>
-                                        <!-- Allocations -->
-                                        <CollectionView ItemsSource="{Binding Allocations}" WidthRequest="120" BackgroundColor= "Black">
-                                            <CollectionView.ItemsLayout>
-                                                <GridItemsLayout Orientation="Vertical" Span="{Binding CoreCount}" />
-                                            </CollectionView.ItemsLayout>
-                                            <CollectionView.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid>
-                                                        <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
-                                                                IsVisible="{Binding Allocated}" BackgroundColor="{Binding RequestId, Converter={StaticResource ReqIdToColor}}">
-                                                            <Label Text="{Binding RequestId}" HorizontalOptions="Center"/>
+                <Grid Grid.Column="3">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="#5F6369">
+                        <Label Text="Allocation" HorizontalOptions="Center"/>
+                    </Grid>
+                    <CollectionView Grid.Row="1" ItemsSource="{Binding NodeAllocations}" HorizontalOptions="FillAndExpand">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <StackLayout>
+                                    <Label Text="{Binding NodeId}" HorizontalOptions="Center" HeightRequest="20"/>
+                                    <Frame Padding="0" BorderColor="White" CornerRadius="0">
+                                        <HorizontalStackLayout>
+                                            <!-- Allocations -->
+                                            <CollectionView ItemsSource="{Binding Allocations}" WidthRequest="320" BackgroundColor= "Black">
+                                                <CollectionView.ItemsLayout>
+                                                    <GridItemsLayout Orientation="Vertical" Span="{Binding CoreCount}" />
+                                                </CollectionView.ItemsLayout>
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid>
+                                                            <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
+                                                                    IsVisible="{Binding Allocated}" BackgroundColor="{Binding RequestId, Converter={StaticResource ReqIdToColor}}">
+                                                                <Label Text="{Binding RequestId}" HorizontalOptions="Center" FontSize="Small"/>
+                                                            </Frame>
+                                                            <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15"          CornerRadius="0" BackgroundColor="Black"
+                                                                    IsVisible="{Binding Allocated, Converter={StaticResource NotConverter}}"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                            <!-- Cpu Util -->
+                                            <CollectionView ItemsSource="{Binding CpuUtilization}" WidthRequest="50" BackgroundColor="Black">
+                                                <CollectionView.ItemsLayout>
+                                                    <LinearItemsLayout Orientation="Vertical" />
+                                                </CollectionView.ItemsLayout>
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Frame BorderColor="White" BackgroundColor="Black" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0">
+                                                            <Label Text="{Binding}" HorizontalOptions="Center"/>
                                                         </Frame>
-                                                        <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15"          CornerRadius="0" BackgroundColor="Black"
-                                                                IsVisible="{Binding Allocated, Converter={StaticResource NotConverter}}"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </CollectionView.ItemTemplate>
-                                        </CollectionView>
-                                        <!-- Cpu Util -->
-                                        <CollectionView ItemsSource="{Binding CpuUtilization}" WidthRequest="50" BackgroundColor="Black">
-                                            <CollectionView.ItemsLayout>
-                                                <LinearItemsLayout Orientation="Vertical" />
-                                            </CollectionView.ItemsLayout>
-                                            <CollectionView.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Frame BorderColor="White" BackgroundColor="Black" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0">
-                                                        <Label Text="{Binding}" HorizontalOptions="Center"/>
-                                                    </Frame>
-                                                </DataTemplate>
-                                            </CollectionView.ItemTemplate>
-                                        </CollectionView>
-                                        <!-- Cost -->
-                                        <CollectionView ItemsSource="{Binding Cost}" WidthRequest="50" BackgroundColor="Black">
-                                            <CollectionView.ItemsLayout>
-                                                <LinearItemsLayout Orientation="Vertical" />
-                                            </CollectionView.ItemsLayout>
-                                            <CollectionView.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Frame BorderColor="White" BackgroundColor="Black" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0">
-                                                        <Label Text="{Binding}" HorizontalOptions="Center"/>
-                                                    </Frame>
-                                                </DataTemplate>
-                                            </CollectionView.ItemTemplate>
-                                        </CollectionView>
-                                    </HorizontalStackLayout>
-                                </Frame>
-                            </StackLayout>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                            <!-- Cost -->
+                                            <CollectionView ItemsSource="{Binding Cost}" WidthRequest="50" BackgroundColor="Black">
+                                                <CollectionView.ItemsLayout>
+                                                    <LinearItemsLayout Orientation="Vertical" />
+                                                </CollectionView.ItemsLayout>
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Frame BorderColor="White" BackgroundColor="Black" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0">
+                                                            <Label Text="{Binding}" HorizontalOptions="Center"/>
+                                                        </Frame>
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </HorizontalStackLayout>
+                                    </Frame>
+                                </StackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
             </Grid>
-        </Grid>
-    </ScrollView>
+        </ScrollView>
+        <Frame Grid.Row="1" CornerRadius="0" BorderColor="White">
+            <CollectionView Grid.Row="1" ItemsSource="{Binding Requests}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <HorizontalStackLayout>
+                            <Label Text="ID:"/>
+                            <Label Text="{Binding Request.Id}"/>
+                            <Label Text="  ST:"/>
+                            <Label Text="{Binding Request.Start}"/>
+                            <Label Text="  DEPS:"/>
+                            <Label Text="{Binding Request.Notes}"/>
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Frame>
+    </Grid>
 </ContentPage>
 

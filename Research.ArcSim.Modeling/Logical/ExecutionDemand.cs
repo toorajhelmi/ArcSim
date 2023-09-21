@@ -33,6 +33,11 @@ namespace Research.ArcSim.Modeling.Logical
             BP = new BandwidthDemand();
             BP.Set(bandwithLevel);
         }
-	}
+
+        public override string ToString()
+        {
+            return $"CPU (MilliCPUSec): {PP.DemandMilliCpuSec}, MEM (MB): {MP.DemandMB}, BW (KB): {BP.DemandKB}";
+        }
+    }
 }
 

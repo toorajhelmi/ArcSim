@@ -1,28 +1,32 @@
 ﻿using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Research.ArcSim.Extensions;
 using Research.ArcSim.Modeling;
 using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Core;
 using AS = Research.ArcSim.Modeling;
 
-namespace Research.ArcSim.Builder
+namespace Research.ArcSim.Builders
 {
 	public class Builder
 	{
         private LogicalImplementation implementation;
+        private IConsole console;
+
         public static Builder Instance { get; }
 
         static Builder() => Instance = new();
 
-        public LogicalImplementation Build(AS.System system, Arch arch)
+        public LogicalImplementation Build(AS.System system, Arch arch, IConsole console)
 		{
-			implementation = new LogicalImplementation
-			{
-				System = system,
-				Arch = arch
+            implementation = new LogicalImplementation
+            {
+                System = system,
+                Arch = arch,
 			};
 
+            this.console = console;
 			BuildServer();
 
 			return implementation;
@@ -36,15 +40,15 @@ namespace Research.ArcSim.Builder
                 WriteIndented = true
             };
 
-            Console.WriteLine(new string('-', 30));
-			Console.WriteLine($"Logical Architecture");
-            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(implementation.Arch, jsonOptions));
-			Console.WriteLine($"Server Style: {Enum.GetName<DeploymentStyle>(implementation.Arch.DeploymentStyle)}");
-            Console.WriteLine($"Client Style: {Enum.GetName<ClientStyle>(implementation.Arch.ClientStyle)}");
-            Console.WriteLine($"{implementation.Components.Count} Components");
-            Console.WriteLine($"{implementation.Components.Average(c => c.Activities.Count)} Avg Activity per Components");
-            Console.WriteLine(new string('-', 30));
-			Console.WriteLine();
+            console.WriteLine(new string('-', 30));
+			console.WriteLine($"Logical Architecture");
+            console.WriteLine(System.Text.Json.JsonSerializer.Serialize(implementation.Arch, jsonOptions));
+			console.WriteLine($"Server Style: {Enum.GetName<DeploymentStyle>(implementation.Arch.DeploymentStyle)}");
+            console.WriteLine($"Client Style: {Enum.GetName<ClientStyle>(implementation.Arch.ClientStyle)}");
+            console.WriteLine($"{implementation.Components.Count} Components");
+            console.WriteLine($"{implementation.Components.Average(c => c.Activities.Count)} Avg Activity per Components");
+            console.WriteLine(new string('-', 30));
+			console.WriteLine();
 		}
 
 		private void BuildServer()

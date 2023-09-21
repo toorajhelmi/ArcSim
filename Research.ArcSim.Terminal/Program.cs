@@ -1,16 +1,15 @@
-﻿using Research.ArcSim.Samples.ECommerce;
-using Rsearch.ArcSim.Simulator;
-using Research.ArcSim.Builder;
+﻿using Research.ArcSim.Allocators;
+using Research.ArcSim.Builders;
+using Research.ArcSim.Handler;
 using Research.ArcSim.Modeling.Arc;
-using Research.ArcSim.Modeling;
+using Research.ArcSim.Modeling.Common;
+using Research.ArcSim.Modeling.Logical;
+using Research.ArcSim.Modeling.Logincal;
+using Research.ArcSim.Modeling.Physical;
 using Research.ArcSim.Modeling.Simulation;
 using Research.ArcSim.Samples;
-using Research.ArcSim.Allocator;
-using Research.ArcSim.Handler;
-using Research.ArcSim.Modeling.Logical;
-using Research.ArcSim.Modeling.Physical;
-using Research.ArcSim.Modeling.Common;
-using Research.ArcSim.Modeling.Logincal;
+using Research.ArcSim.Terminal;
+using Rsearch.ArcSim.Simulator;
 
 var simulationConfig = new SimulationConfig();
 //var ecomm = new EcommerceSystem();
@@ -78,12 +77,12 @@ Mandates.Add(new Mandate<DeploymentStyle, Stickiness>(
     new List<(DeploymentStyle, Stickiness)> { (DeploymentStyle.Serverless, Stickiness.OnDemand) },
     Stickiness.Upfront));
 
-var internet = new BandwidthProfile(12.5 * Units.MB_KB);
-var intranet = new BandwidthProfile(100 * Units.MB_KB);
+var internet = new BandwidthProfile(12.5 * Units.MB);
+var intranet = new BandwidthProfile(100 * Units.MB);
 
 simulationConfig.Bandwidth = new Bandwidth(internet, intranet);
 
-var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, executionProfile);
+var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, new SystemConsole(), executionProfile);
 
 SystemGenerator.Instance.ShowSystem(system);
 
@@ -107,13 +106,13 @@ foreach (var serverStyle in new[] {
 
         simulationConfig.AllocationStrategy.Stickiness = Mandates.Get<DeploymentStyle, Stickiness>().GetFor(simulationConfig.Arch.DeploymentStyle);
 
-        var impl = Builder.Instance.Build(system, simulationConfig.Arch);
+        var impl = Builder.Instance.Build(system, simulationConfig.Arch, new SystemConsole());
         Builder.Instance.ShowImplementation();
 
         FireForgetHandler.Create(simulationConfig);
         Allocator.Create(simulationConfig, impl);
         //Allocator.Create(simulationStrategy, costProfile, impl, new Bandwidth(0.001 * Units.MB_KB, 0.9, false));
-        Simulator.Create(simulationConfig, system);
+        Simulator.Create(simulationConfig, system, new SystemConsole());
         Simulator.Instance.Run(impl);
     }
 }
