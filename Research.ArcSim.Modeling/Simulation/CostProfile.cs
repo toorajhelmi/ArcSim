@@ -1,7 +1,6 @@
-﻿using System;
-namespace Research.ArcSim.Modeling.Simulation
+﻿namespace Research.ArcSim.Modeling.Simulation
 {
-	public class CostProfile
+    public class CostProfile
 	{
 		public double vCpuPerHour { get; set; }
         public double MemoryGBPerHour { get; set; }

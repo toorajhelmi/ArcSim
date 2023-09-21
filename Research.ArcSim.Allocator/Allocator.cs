@@ -140,7 +140,7 @@ namespace Research.ArcSim.Allocators
                 var utilizations = nodes.Select(n => new { Node = n, Util = n.GetUtilization() }).ToList();
                 foreach (var nodeUtil in utilizations)
                 {
-                    nodeUtil.Node.CalculateCost(nodeUtil.Util, costProfile, simulationConfig);
+                    nodeUtil.Node.CalculateTotalCost(nodeUtil.Util, costProfile, simulationConfig);
                 }
 
                 Console.WriteLine();

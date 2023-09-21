@@ -1,6 +1,4 @@
-﻿using System;
-using Research.ArcSim.Modeling.Arc;
-using Research.ArcSim.Modeling.Common;
+﻿using Research.ArcSim.Modeling.Common;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Simulation;
 
@@ -119,7 +117,7 @@ namespace Research.ArcSim.Modeling.Physical
             return totalUtilization;
         }
 
-        public void CalculateCost(AggregatedUtilizaion utilization, CostProfile costProfile, SimulationConfig simulationConfig)
+        public void CalculateTotalCost(AggregatedUtilizaion utilization, CostProfile costProfile, SimulationConfig simulationConfig)
         {
             var duration = simulationConfig.AllocationStrategy.Stickiness == Stickiness.OnDemand ? utilization.AggDurationMSec : utilization.EndTime - utilization.StartTime;
                 
@@ -129,9 +127,39 @@ namespace Research.ArcSim.Modeling.Physical
                 utilization.IntranetBandwidthMB * costProfile.BandwidthCostPerGBIntranet;
         }
 
-        public int GetCpuUtilizationPercent(int now, int window = Units.Minute)
+        public double CalculateCost(CostProfile costProfile, int till, int window = Units.Minute)
         {
-            var since = int.Max(0, now - window);
+            var cost = 0.0;
+
+            var since = int.Max(0, till - window);
+
+            var utilizedCores = Utilizations.Where(u => u.Utilization.Any());
+
+            if (!utilizedCores.Any())
+                return cost;
+
+            var utilizedTime = 0;
+
+            foreach (var coreUtil in utilizedCores)
+            {
+                var endedWithinWindow = coreUtil.Utilization.Where(u => (u.EndTime == 0 || u.EndTime > since) && u.StartTime < till);
+                utilizedTime += endedWithinWindow.Sum(u => (u.EndTime == 0 ? till : int.Min(u.EndTime, till)) - int.Max(since, u.StartTime));
+
+                if (endedWithinWindow.Any())
+                {
+                    cost += endedWithinWindow.Sum(u => u.InternetBandwidthMB * costProfile.BandwidthCostPerGBInternet / Units.GB + u.IntranetBandwidthMB * costProfile.BandwidthCostPerGBIntranet);
+                }
+            }
+
+            cost = vCpu * utilizedTime * costProfile.vCpuPerHour / Units.Hour;
+            cost = MemoryMB * utilizedTime * costProfile.MemoryGBPerHour / Units.GB_MB / Units.Hour;
+
+            return cost;
+        }
+
+        public int GetCpuUtilizationPercent(int till, int window = Units.Minute)
+        {
+            var since = int.Max(0, till - window);
 
             var utilizedCores = Utilizations.Where(u => u.Utilization.Any());
 
@@ -142,8 +170,8 @@ namespace Research.ArcSim.Modeling.Physical
 
             foreach (var coreUtil in utilizedCores)
             {
-                var endedWithinWindow = coreUtil.Utilization.Where(u => (u.EndTime == 0 || u.EndTime > since) && u.StartTime < now);
-                utilizedTime += endedWithinWindow.Sum(u => (u.EndTime == 0 ? now : int.Min(u.EndTime, now)) - int.Max(since, u.StartTime));
+                var endedWithinWindow = coreUtil.Utilization.Where(u => (u.EndTime == 0 || u.EndTime > since) && u.StartTime < till);
+                utilizedTime += endedWithinWindow.Sum(u => (u.EndTime == 0 ? till : int.Min(u.EndTime, till)) - int.Max(since, u.StartTime));
             }
 
             return 100 * utilizedTime / (Utilizations.Count * window);

@@ -190,6 +190,8 @@ namespace Research.ArcSim.Desktop.ViewModels
                 for (int time = nodeResult.Start + Units.Sec; time < nodeResult.End; time += Units.Sec)
                 {
                     nodeResult.CpuUtilization.Add((time - Units.Sec, node.Key.GetCpuUtilizationPercent(time, Units.Sec)));
+                    nodeResult.Cost.Add((time - Units.Sec, 100 * node.Key.CalculateCost(simulationConfig.AllocationStrategy.Stickiness == Stickiness.OnDemand ?
+                        Allocator.OnDemandCostProfile : Allocator.UpfrontCostProfile, time, Units.Sec)));
                 }
 
                 simulationResult.NodeResults.Add(nodeResult);
