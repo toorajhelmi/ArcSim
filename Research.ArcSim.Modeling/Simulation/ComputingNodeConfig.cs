@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace Research.ArcSim.Modeling.Simulation
 {
@@ -22,8 +23,11 @@ namespace Research.ArcSim.Modeling.Simulation
 
 	public class ComputingNodeConfig
 	{
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public Nic Nic { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public Sku Sku { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public Location Location { get; set; }
     }
 }

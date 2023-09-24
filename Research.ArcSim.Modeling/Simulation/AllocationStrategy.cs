@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using Research.ArcSim.Modeling.Arc;
 
 namespace Research.ArcSim.Modeling.Simulation
@@ -25,6 +26,7 @@ namespace Research.ArcSim.Modeling.Simulation
 
 	public class HorizontalScalingConfig
 	{
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public HorizonalScaling HorizonalScaling { get; set; }
 		public int MinCpuUtilization { get; set; }
 		public int MaxCpuUtilization { get; set; }
@@ -34,12 +36,14 @@ namespace Research.ArcSim.Modeling.Simulation
 		public int DefaultInstance { get; set; }
 		public int MaxInstances { get; set; }
 		public int MinInstances { get; set; }
-		public LoadBalancingStrategy LoadBalancingStrategy { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public LoadBalancingStrategy LoadBalancingStrategy { get; set; }
     }
 
     public class AllocationStrategy
 	{
-		public Stickiness Stickiness { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public Stickiness Stickiness { get; set; }
 		public HorizontalScalingConfig HorizontalScalingConfig { get; set; } = new();
 	}
 }

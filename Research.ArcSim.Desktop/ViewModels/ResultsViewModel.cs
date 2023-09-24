@@ -1,7 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using Prism.Mvvm;
 using Research.ArcSim.Extensions;
-using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Simulation;
 
 namespace Research.ArcSim.Desktop.ViewModels

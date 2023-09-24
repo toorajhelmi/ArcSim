@@ -5,24 +5,27 @@ namespace Research.ArcSim.Modeling.Physical
 {
 	public class Bandwidth
 	{
-		private BandwidthProfile internet;
-		private BandwidthProfile intranet;
+		public BandwidthProfile Internet { get; set; }
+		public BandwidthProfile Intranet { get; set; }
 
+        public Bandwidth()
+		{
+		}
 
         public Bandwidth(BandwidthProfile internet, BandwidthProfile intranet)
 		{
-			this.internet = internet;
-			this.intranet = intranet;
+            Internet = internet;
+			Intranet = intranet;
 		}
 
 		public double GetKBPerSec(Request request)
 		{
 			if (request.RequestingActivity is ExternalActivity)
-				return internet.GetKBPerSec();
+				return Internet.GetKBPerSec();
 			if (request.RequestingActivity.Definition.Component == request.ServingActivity.Definition.Component)
 				return double.MaxValue;
 			else
-				return intranet.GetKBPerSec();
+				return Intranet.GetKBPerSec();
 		}
 	}
 }

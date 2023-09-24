@@ -1,7 +1,10 @@
-﻿using System.Windows.Input;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Windows.Input;
 using Prism.Mvvm;
 using Research.ArcSim.Allocators;
 using Research.ArcSim.Builders;
+using Research.ArcSim.Extensions;
 using Research.ArcSim.Handler;
 using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Common;
@@ -17,23 +20,70 @@ namespace Research.ArcSim.Desktop.ViewModels
 {
     public class SimulationViewModel: BindableBase
     {
+        private SimulationConfig simulationConfig;
+        private ExecutionDemand executionProfile;
         private List<SimulationResult> results = new();
         public string SimulationParameters { get; set; }
         public SystemDefViewModel SystemDefViewModel { get; set; } = new SystemDefViewModel();
         public OutputViewModel OutputViewModel { get; set; } = new OutputViewModel();
         public Command RunCommand { get; set; }
-
+        public List<string> DeploymentOptions { get; set; } = new();
+        public List<string> SelectedDeploymentOptions { get; set; } = new();
+        public List<string> ProcessingOptions { get; set; } = new();
+        public List<string> SelectedProcessingOptions { get; set; } = new();
+        
         public SimulationViewModel()
         {
             RunCommand = new Command(Run);
+            InitializeConfig();
+
+            DeploymentOptions.AddRange(Enum.GetNames<DeploymentStyle>());
+            ProcessingOptions.AddRange(Enum.GetNames<ProcessingMode>());
         }
 
-        public void Run()
+        public async void Run()
         {
+            if (!SelectedDeploymentOptions.Any())
+            {
+                await App.Current.MainPage.DisplayAlert("Alert", "Please select one or more deployment styles.", "OK");
+                return;
+            }
+
+            if (!SelectedProcessingOptions.Any())
+            {
+                await App.Current.MainPage.DisplayAlert("Alert", "Please select one or more processing modes.", "OK");
+                return;
+            }
+
+            try
+            {
+                simulationConfig = JsonSerializer.Deserialize<SimulationConfig>(SimulationParameters);
+            }
+            catch (Exception e)
+            {
+                await App.Current.MainPage.DisplayAlert("Alert", "Invalid simulation config.\r\n" + e.Message, "OK");
+                return;
+            }
+
             OutputViewModel.Output = "";
 
-            var simulationConfig = new SimulationConfig();
-            //var ecomm = new EcommerceSystem();
+            var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
+
+            SystemGenerator.Instance.ShowSystem(system);
+
+            foreach (var serverStyle in SelectedDeploymentOptions.Select(Enum.Parse<DeploymentStyle>))
+            {
+                foreach (var processingMode in SelectedProcessingOptions.Select(Enum.Parse<ProcessingMode>))
+                {
+                    RunForConfig(simulationConfig, system, serverStyle, processingMode);
+                }
+            }
+        }
+
+        private void InitializeConfig()
+        {
+            simulationConfig = new SimulationConfig();
+
             simulationConfig.SystemDefinition = new SystemDefinition
             {
                 Name = "Tiny System",
@@ -60,7 +110,7 @@ namespace Research.ArcSim.Desktop.ViewModels
                 Location = Location.Cloud
             };
 
-            var executionProfile = new ExecutionDemand(
+            executionProfile = new ExecutionDemand(
                 processingLevel: DemandLevel.Medium,
                 memoryLevel: DemandLevel.High,
                 bandwithLevel: DemandLevel.High);
@@ -103,29 +153,19 @@ namespace Research.ArcSim.Desktop.ViewModels
 
             simulationConfig.Bandwidth = new Bandwidth(internet, intranet);
 
-            var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
-
-            SystemGenerator.Instance.ShowSystem(system);
-
-            foreach (var serverStyle in new[] {
-                DeploymentStyle.Microservices,
-                //DeploymentStyle.Serverless,
-                //DeploymentStyle.Layered,
-                //DeploymentStyle.Monolith
-            })
+            var jsonOptions = new JsonSerializerOptions
             {
-                foreach (var processingMode in new[] {
-                    ProcessingMode.FireForget,
-                    //ProcessingMode.Queued,
-                })
-                {
-                    RunForConfig(simulationConfig, system, serverStyle, processingMode);
-                }
-            }
+                Converters = { new JsonStringEnumConverter() },
+                WriteIndented = true
+            };
+
+            SimulationParameters = JsonSerializer.Serialize(simulationConfig, jsonOptions);
         }
 
         private void RunForConfig(SimulationConfig simulationConfig, Modeling.System system, DeploymentStyle serverStyle, ProcessingMode processingMode)
         {
+            results.Clear();
+
             simulationConfig.Arch = new Arch
             {
                 DeploymentStyle = serverStyle,
@@ -139,10 +179,10 @@ namespace Research.ArcSim.Desktop.ViewModels
 
             FireForgetHandler.Create(simulationConfig);
             Allocator.Create(simulationConfig, impl);
-            //Allocator.Create(simulationStrategy, costProfile, impl, new Bandwidth(0.001 * Units.MB_KB, 0.9, false));
             Simulator.Create(simulationConfig, system, OutputViewModel);
             Simulator.Instance.Run(impl);
             StoreResults(simulationConfig);
+
             var requests = Simulation.Instance.requests.Values.SelectMany(r => r).Select(r => new Request
             {
                 Id = r.Id.ToString(),

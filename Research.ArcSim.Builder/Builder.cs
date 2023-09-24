@@ -42,7 +42,7 @@ namespace Research.ArcSim.Builders
 
             console.WriteLine(new string('-', 30));
 			console.WriteLine($"Logical Architecture");
-            console.WriteLine(System.Text.Json.JsonSerializer.Serialize(implementation.Arch, jsonOptions));
+            console.WriteLine(JsonSerializer.Serialize(implementation.Arch, jsonOptions));
 			console.WriteLine($"Server Style: {Enum.GetName<DeploymentStyle>(implementation.Arch.DeploymentStyle)}");
             console.WriteLine($"Client Style: {Enum.GetName<ClientStyle>(implementation.Arch.ClientStyle)}");
             console.WriteLine($"{implementation.Components.Count} Components");

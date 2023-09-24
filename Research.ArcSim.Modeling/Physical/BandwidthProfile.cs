@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Text.Json.Serialization;
+
 namespace Research.ArcSim.Modeling.Physical
 {
     public enum BandwidthPattern
@@ -11,7 +12,12 @@ namespace Research.ArcSim.Modeling.Physical
 	{
         public double MaxKBPerSec { get; set; }
         public double VariatianRatio { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public BandwidthPattern Pattern { get; set; }
+
+        public BandwidthProfile()
+        {
+        }
 
         public BandwidthProfile(double maxKBPerSec)
         {
