@@ -1,174 +1,309 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:tk="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="Research.ArcSim.Desktop.Views.SimulationView"
-             xmlns:v="clr-namespace:Research.ArcSim.Desktop.Views"
              BackgroundColor="Black">
-    <ContentPage.Resources>
-        <v:ReqIdToColor x:Key="ReqIdToColor"/>
-    </ContentPage.Resources>
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="200"/>
-        </Grid.RowDefinitions>
-        <ScrollView>
-            <Grid HorizontalOptions="FillAndExpand">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="500"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <!--<Frame BorderColor="White" CornerRadius="0" BackgroundColor="Transparent">-->
+                <ScrollView Margin="0,0,2,0">
+                    <VerticalStackLayout>
+                        <tk:Expander IsExpanded="False" BackgroundColor="#5F6369" Margin="1">
+                            <tk:Expander.Header>
+                                <Label Text="System Definition ▼" FontSize="Header" Padding="5"/>
+                            </tk:Expander.Header>
+                            <VerticalStackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="System Size"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding SystemSizeOptions}" BackgroundColor="LightGray" HeightRequest="40" SelectedItem="{Binding SelectedSystemSize, Mode=TwoWay}">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+
+                                <StackLayout Margin="5">
+                                    <Label Text="Module Count"/>
+                                    <Editor Text="{Binding ModuleCount}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+
+                                <StackLayout Margin="5">
+                                    <Label Text="Avg Function Per Module"/>
+                                    <Editor Text="{Binding AvgFunctionPerModule}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+
+                                <StackLayout Margin="5">
+                                    <Label Text="Inter-modular Dependency"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding DependencyOptions}" BackgroundColor="LightGray" HeightRequest="90" SelectedItem="{Binding InterModularDependency}">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+
+                                <StackLayout Margin="5">
+                                    <Label Text="Intra-modular Dependency"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding YesNoOptions}" BackgroundColor="LightGray" HeightRequest="40" SelectedItem="{Binding IntraModularDependency}">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                            </VerticalStackLayout>
+                        </tk:Expander>
+
+                        <tk:Expander IsExpanded="False" BackgroundColor="#5F6369" Margin="1">
+                            <tk:Expander.Header>
+                                <Label Text="Implementation Strategy ▼" FontSize="Header" Padding="5"/>
+                            </tk:Expander.Header>
+                            <VerticalStackLayout>                           
+                                <StackLayout Margin="5">
+                                    <Label Text="Deployment Style"/>
+                                    <CollectionView SelectionMode="Multiple" ItemsSource="{Binding DeploymentOptions}" SelectedItems="{Binding SelectedDeploymentOptions}" BackgroundColor="LightGray" HeightRequest="80" SelectionChanged="Deployment_SelectionChanged">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Processing Model"/>
+                                    <CollectionView SelectionMode="Multiple" ItemsSource="{Binding ProcessingOptions}" BackgroundColor="LightGray" HeightRequest="40"   SelectionChanged="Processing_SelectionChanged">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                            </VerticalStackLayout>
+                        </tk:Expander>
+                        <tk:Expander IsExpanded="False" BackgroundColor="#5F6369" Margin="1">
+                            <tk:Expander.Header>
+                                <Label Text="Allocation Strategy ▼" FontSize="Header" Padding="5"/>
+                            </tk:Expander.Header>
+                            <VerticalStackLayout>
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Allocation Mode"/>
+                                    <CollectionView SelectionMode="Multiple" ItemsSource="{Binding AllocationModeOptions}"
+                                                    SelectedItem="{Binding AllocationMode}"
+                                                    BackgroundColor="LightGray" HeightRequest="40">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Horizontal Scaling"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding HorizontalScalingOptions}"
+                                                    SelectedItem="{Binding AllocationMode}"
+                                                    BackgroundColor="LightGray" HeightRequest="60">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Min CPU Utilization"/>
+                                    <Editor Text="{Binding MinCpuUtilization}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Max CPU Utilization"/>
+                                    <Editor Text="{Binding MaxCpuUtilization}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Min Queue Length"/>
+                                    <Editor Text="{Binding MinQueueLength}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Max Queue Length"/>
+                                    <Editor Text="{Binding MaxQueueLength}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Cool-down Period (mSec)"/>
+                                    <Editor Text="{Binding CooldownPeriod}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Default Instances"/>
+                                    <Editor Text="{Binding DefaultInstances}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Min Instances"/>
+                                    <Editor Text="{Binding MinInstances}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Max Instances"/>
+                                    <Editor Text="{Binding MaxInstances}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Load-Balancing Strategy"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding LoadBalancingStrategyOptions}"
+                                                    SelectedItem="{Binding LoadBalancingStrategy}"
+                                                    BackgroundColor="LightGray" HeightRequest="60">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                            </VerticalStackLayout>
+                        </tk:Expander>
+                        <tk:Expander IsExpanded="False" BackgroundColor="#5F6369" Margin="1">
+                            <tk:Expander.Header>
+                                <Label Text="Request Handling Strategy ▼" FontSize="Header" Padding="5"/>
+                            </tk:Expander.Header>
+                            <VerticalStackLayout>
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Skip Expired Requests"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding YesNoOptions}"
+                                                    SelectedItem="{Binding SkipExpiredRequests}"
+                                                    BackgroundColor="LightGray" HeightRequest="60">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Trial Count"/>
+                                    <Editor Text="{Binding TrialCount}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                            </VerticalStackLayout>
+                        </tk:Expander>
+                        <tk:Expander IsExpanded="False" BackgroundColor="#5F6369" Margin="1">
+                            <tk:Expander.Header>
+                                <Label Text="Simulation Strategy ▼" FontSize="Header" Padding="5"/>
+                            </tk:Expander.Header>
+                            <VerticalStackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Max Response Time (mSec)"/>
+                                    <Editor Text="{Binding MaxResponseTime}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Total Cost (cents)"/>
+                                    <Editor Text="{Binding TotalCost}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Request Distribution"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding RequestDistributionOptions}"
+                                                    SelectedItem="{Binding RequestDistribution}"
+                                                    BackgroundColor="LightGray" HeightRequest="60">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Avg Request Per Second"/>
+                                    <Editor Text="{Binding AvgRequestPerSecond}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Simulation Duration (sec)"/>
+                                    <Editor Text="{Binding SimulationDuration}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                            </VerticalStackLayout>
+                        </tk:Expander>
+                        <tk:Expander IsExpanded="False" BackgroundColor="#5F6369" Margin="1">
+                            <tk:Expander.Header>
+                                <Label Text="Bandwith Model ▼" FontSize="Header" Padding="5"/>
+                            </tk:Expander.Header>
+                            <VerticalStackLayout>
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Internet Bandwidth Patten"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding BandwidthPattenOptions}"
+                                                    SelectedItem="{Binding InternetBandwidthPatten}"
+                                                    BackgroundColor="LightGray" HeightRequest="60">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Max Internet Bandwidth (KB)"/>
+                                    <Editor Text="{Binding MaxInternetBandwidthKB}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Internet Varation %"/>
+                                    <Editor Text="{Binding InternetVarationPercent}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+
+                                <StackLayout Grid.Row="1" Margin="5">
+                                    <Label Text="Intranet Bandwidth Patten"/>
+                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding BandwidthPattenOptions}"
+                                                    SelectedItem="{Binding IntranetBandwidthPatten}"
+                                                    BackgroundColor="LightGray" HeightRequest="60">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="Black"   />
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Max Intranet Bandwidth (KB)"/>
+                                    <Editor Text="{Binding MaxIntranetBandwidthKB}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                                <StackLayout Margin="5">
+                                    <Label Text="Intranet Varation %"/>
+                                    <Editor Text="{Binding IntranetVarationPercent}" BackgroundColor="LightGray" TextColor="Black"/>
+                                </StackLayout>
+                            </VerticalStackLayout>          
+                        </tk:Expander>
+                    </VerticalStackLayout>
+                </ScrollView>
+           <!-- </Frame>-->
+            <Button Grid.Row="1" Text="Run" Command="{Binding RunCommand}"/>
+        </Grid>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="200"/>
+            </Grid.RowDefinitions>
+            <Grid BackgroundColor="#5F6369">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200"/>
-                    <ColumnDefinition Width="400"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Frame Grid.Column="0" Background="Black" Padding="0" BackgroundColor="White" BorderColor="DarkGrey" CornerRadius="0">
-                    <StackLayout Padding="5">
-                        <Label Text="Min Time"/>
-                        <Editor Placeholder="In Seconds" Text="{Binding MinTime}" TextColor="White" BackgroundColor="#5F6369"/>
-                        <Label Text="Max Time" Margin="0,10,0,0"/>
-                        <Editor Placeholder="In Seconds" Text="{Binding MaxTime}" TextColor="White" BackgroundColor="#5F6369"/>
-                        <Label Text="Time Step" Margin="0,10,0,0"/>
-                        <Editor Placeholder="In Seconds" Text="{Binding TimeUnit}" TextColor="White" BackgroundColor="#5F6369"/>
-                        <Button Margin="0,10,0,0" Text="Apply" Command="{Binding ApplyCommnad}" BackgroundColor="Black" TextColor="Wheat" BorderColor="White"/>
-                    </StackLayout>
-                </Frame>
-                <Grid Grid.Column="1">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="20"/>
-                        <RowDefinition Height="20"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="#5F6369">    
-                        <Label Text="Requests" HorizontalOptions="Center" VerticalOptions="Center"/>
-                    </Grid>
-                    <CollectionView Grid.Row="2" ItemsSource="{Binding Requests}">
-                        <CollectionView.ItemsLayout>
-                            <GridItemsLayout Orientation="Vertical" Span="{Binding ReqsPerTime}" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                               <Grid>
-                                    <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
-                                                IsVisible="{Binding Exists}" BackgroundColor="{Binding Request.Id, Converter={StaticResource ReqIdToColor}}" ToolTipProperties.Text="{Binding Request.Notes}">
-                                            <Label Text="{Binding Request.Id}" HorizontalOptions="Center"/>
-                                    </Frame>
-                                    <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
-                                           IsVisible="{Binding Exists, Converter={StaticResource NotConverter}}">                                   
-                                    </Frame>
-                                </Grid>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </Grid>
-                <Grid Grid.Column="2" WidthRequest="50">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="20"/>
-                        <RowDefinition Height="20"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="LightGray">    
-                        <Label Text="t" HorizontalOptions="Center" VerticalOptions="Center" TextColor="Black"/>
-                    </Grid>
-                    <!-- Time -->
-                    <CollectionView Grid.Row="2" ItemsSource="{Binding TimeRange}">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Vertical" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Frame BorderColor="White" BackgroundColor="LightGray" Padding="0" WidthRequest="40"        HeightRequest="15" CornerRadius="0">
-                                    <Label Text="{Binding}" HorizontalOptions="Center" TextColor="Black" FontSize="10"/>
-                                </Frame>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </Grid>
-                <Grid Grid.Column="3">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="20"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" HorizontalOptions="FillAndExpand" BackgroundColor="#5F6369">
-                        <Label Text="Allocation" HorizontalOptions="Center"/>
-                    </Grid>
-                    <CollectionView Grid.Row="1" ItemsSource="{Binding NodeAllocations}" HorizontalOptions="FillAndExpand">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Horizontal" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <StackLayout>
-                                    <Label Text="{Binding NodeId}" HorizontalOptions="Center" HeightRequest="20"/>
-                                    <Frame Padding="0" BorderColor="White" CornerRadius="0">
-                                        <HorizontalStackLayout>
-                                            <!-- Allocations -->
-                                            <CollectionView ItemsSource="{Binding Allocations}" WidthRequest="320" BackgroundColor= "Black">
-                                                <CollectionView.ItemsLayout>
-                                                    <GridItemsLayout Orientation="Vertical" Span="{Binding CoreCount}" />
-                                                </CollectionView.ItemsLayout>
-                                                <CollectionView.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Grid>
-                                                            <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0"
-                                                                    IsVisible="{Binding Allocated}" BackgroundColor="{Binding RequestId, Converter={StaticResource ReqIdToColor}}">
-                                                                <Label Text="{Binding RequestId}" HorizontalOptions="Center" FontSize="Small"/>
-                                                            </Frame>
-                                                            <Frame BorderColor="Gray" Padding="0" WidthRequest="40" HeightRequest="15"          CornerRadius="0" BackgroundColor="Black"
-                                                                    IsVisible="{Binding Allocated, Converter={StaticResource NotConverter}}"/>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </CollectionView.ItemTemplate>
-                                            </CollectionView>
-                                            <!-- Cpu Util -->
-                                            <CollectionView ItemsSource="{Binding CpuUtilization}" WidthRequest="50" BackgroundColor="Black">
-                                                <CollectionView.ItemsLayout>
-                                                    <LinearItemsLayout Orientation="Vertical" />
-                                                </CollectionView.ItemsLayout>
-                                                <CollectionView.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Frame BorderColor="White" BackgroundColor="Black" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0">
-                                                            <Label Text="{Binding}" HorizontalOptions="Center"/>
-                                                        </Frame>
-                                                    </DataTemplate>
-                                                </CollectionView.ItemTemplate>
-                                            </CollectionView>
-                                            <!-- Cost -->
-                                            <CollectionView ItemsSource="{Binding Cost}" WidthRequest="50" BackgroundColor="Black">
-                                                <CollectionView.ItemsLayout>
-                                                    <LinearItemsLayout Orientation="Vertical" />
-                                                </CollectionView.ItemsLayout>
-                                                <CollectionView.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Frame BorderColor="White" BackgroundColor="Black" Padding="0" WidthRequest="40" HeightRequest="15" CornerRadius="0">
-                                                            <Label Text="{Binding}" HorizontalOptions="Center"/>
-                                                        </Frame>
-                                                    </DataTemplate>
-                                                </CollectionView.ItemTemplate>
-                                            </CollectionView>
-                                        </HorizontalStackLayout>
-                                    </Frame>
-                                </StackLayout>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </Grid>
+                <Label Grid.Column="1" Text="Output" VerticalOptions="Center" HorizontalOptions="Center"/>
+                <HorizontalStackLayout Grid.Column="2" HorizontalOptions="End">
+                    <Button Text="CLR" Command="{Binding ClearCommnad}" Margin="5" BackgroundColor="White" TextColor="Black"/>
+                </HorizontalStackLayout>
             </Grid>
-        </ScrollView>
-        <Frame Grid.Row="1" CornerRadius="0" BorderColor="White" BackgroundColor="Transparent">
-            <CollectionView Grid.Row="1" ItemsSource="{Binding Requests}">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <HorizontalStackLayout>
-                            <Label Text="ID:"/>
-                            <Label Text="{Binding Request.Id}"/>
-                            <Label Text="  ST:"/>
-                            <Label Text="{Binding Request.Start}"/>
-                            <Label Text="  DEPS:"/>
-                            <Label Text="{Binding Request.Notes}"/>
-                        </HorizontalStackLayout>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </Frame>
+            <ScrollView Grid.Row="1">
+                <Label Text="{Binding OutputViewModel.Output}" TextColor="LightGreen"/>
+            </ScrollView>
+            <ScrollView Grid.Row="2">
+                <Editor Text="{Binding ResultOutputViewModel.Output}" TextColor="White"/>
+            </ScrollView>
+        </Grid>
     </Grid>
 </ContentPage>
-

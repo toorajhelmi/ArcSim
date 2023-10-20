@@ -4,8 +4,71 @@
              x:Class="Research.ArcSim.Desktop.Views.ReportView"
              Title="ReportView"
              BackgroundColor="Black">
-    <VerticalStackLayout>
-        <Label 
-            Text="Reports"/>
-    </VerticalStackLayout>
+    <Frame Margin="10" BackgroundColor="#5F6369">
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout>
+                <HorizontalStackLayout BackgroundColor="DarkGrey">
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="200" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Scenario Description" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Req Count" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Avg Time (mS)" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Cost ($)" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Scalability" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Infra. Sensitivity" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="BW Sensitivity" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Security" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Resiliency" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Development Econ" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Production Econ" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Maintenance Econ" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                </HorizontalStackLayout>
+                <CollectionView ItemsSource="{Binding Results}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <HorizontalStackLayout>
+                                <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                                    <Label Text="{Binding ScenarioDesc}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Frame>
+                                <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                                    <Label Text="{Binding Cost}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Frame>
+                                <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                                    <Label Text="{Binding RequestCount}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Frame>
+                                <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                                    <Label Text="{Binding AverageTime}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Frame>
+                                <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                                    <Label Text="{Binding TotalCost}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Frame>
+                            </HorizontalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Frame>
 </ContentPage>

@@ -110,7 +110,7 @@ foreach (var serverStyle in new[] {
         Builder.Instance.ShowImplementation();
 
         FireForgetHandler.Create(simulationConfig);
-        Allocator.Create(simulationConfig, impl);
+        Allocator.Create(simulationConfig, impl, new SystemConsole());
         //Allocator.Create(simulationStrategy, costProfile, impl, new Bandwidth(0.001 * Units.MB_KB, 0.9, false));
         Simulator.Create(simulationConfig, system, new SystemConsole());
         Simulator.Instance.Run(impl);

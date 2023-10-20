@@ -73,12 +73,12 @@ namespace Rsearch.ArcSim.Simulator
 			console.WriteLine();
             ShowReport();
 
-			Allocator.Instance.ShowReport(new Allocator.ReportSettings
-			{
-				ShowSummary = true,
-				ShowNodeAllocations = false,
-				ShowRequestDetails = false
-			});
+			//Allocator.Instance.ShowReport(new Allocator.ReportSettings
+			//{
+			//	ShowSummary = true,
+			//	ShowNodeAllocations = false,
+			//	ShowRequestDetails = false
+			//});
 
 			var bugs = StatisticsCalculator<Activity>.Instance.Any(s => s.ProcessingTime < 0);
 			if (bugs.Any())
@@ -89,6 +89,8 @@ namespace Rsearch.ArcSim.Simulator
 					activity.ShowActivityTree(0);
 				}
 			}
+
+            console.WriteLine(new string('=', 100));
         }
 
 		private void ShowProgress(int index)
@@ -115,7 +117,7 @@ namespace Rsearch.ArcSim.Simulator
 
             console.WriteLine();
             console.WriteLine("Simulation Report");
-            console.WriteLine(System.Text.Json.JsonSerializer.Serialize(simulationConfig, jsonOptions));
+            console.WriteLine(JsonSerializer.Serialize(simulationConfig, jsonOptions));
             console.WriteLine($"Simulation completed after {Simulation.Instance.Now / 1000} seconds.");
             console.WriteLine($"Request Count (Orig|All): {completedOriginalRequests.Count()}|{completedAllRequests.Count()}");
             console.WriteLine($"Completed Requests: {StatisticsCalculator<Activity>.Instance.CalcStats(a => a.Completed, Stat.Percentage):0.00}%");

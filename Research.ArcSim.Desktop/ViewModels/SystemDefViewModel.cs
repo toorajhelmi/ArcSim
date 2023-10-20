@@ -11,6 +11,12 @@ namespace Research.ArcSim.Desktop.ViewModels
         {
         }
 
+        public void Clear()
+        {
+            Output = "";
+            RaisePropertyChanged(nameof(Output));
+        }
+
         public void Write(string text, params int[] parameters)
         {
             Output += text;

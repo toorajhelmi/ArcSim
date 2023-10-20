@@ -1,4 +1,7 @@
-﻿using Research.ArcSim.Modeling;
+﻿using System;
+using System.Linq;
+using Research.ArcSim.Extensions;
+using Research.ArcSim.Modeling;
 using Research.ArcSim.Modeling.Common;
 using Research.ArcSim.Modeling.Core;
 using Research.ArcSim.Modeling.Logical;
@@ -23,6 +26,15 @@ namespace Research.ArcSim.Allocators
             public bool ShowRequestDetails { get; set; }
         }
 
+        public class Results
+        {
+            public double TotalCost { get; set; }
+            public double AverageCost { get; set; }
+            public double TotalRequestTime { get; set; }
+            public double AvgRequestTime { get; set; }
+        }
+
+        private IConsole console;
         private static Dictionary<string, ComputingNode> onDemandConfigs = new();
         private static Dictionary<string, ComputingNode> upfrontConfigs = new();
 
@@ -32,7 +44,7 @@ namespace Research.ArcSim.Allocators
         public List<Allocation> Allocations { get; set; } = new();
         public double CurrentCost { get; set; }
         public static Allocator Instance { get; private set; }
-
+        public Results AllocationResults { get; set; } = new();
         private SimulationConfig simulationConfig;
         private SimulationStrategy simulationStrategy;
         private AllocationStrategy allocationStrategy;
@@ -82,7 +94,7 @@ namespace Research.ArcSim.Allocators
             };
         }
 
-        public static void Create(SimulationConfig simulationConfig, LogicalImplementation implementation)
+        public static void Create(SimulationConfig simulationConfig, LogicalImplementation implementation, IConsole console)
         {
             Instance = new Allocator();
             Instance.simulationConfig = simulationConfig;
@@ -90,6 +102,7 @@ namespace Research.ArcSim.Allocators
             Instance.allocationStrategy = simulationConfig.AllocationStrategy;
             Instance.implementation = implementation;
             Instance.bandwidth = simulationConfig.Bandwidth;
+            Instance.console = console;
 
             Instance.costProfile = simulationConfig.AllocationStrategy.Stickiness == Stickiness.OnDemand ? OnDemandCostProfile : UpfrontCostProfile;
         }
@@ -104,7 +117,7 @@ namespace Research.ArcSim.Allocators
             ComputingNode node = null;
             var stickiness = allocationStrategy.Stickiness;
 
-            if (!(request.RequestingActivity is ExternalActivity))
+            if (!(request.RequestingActivity is ExternalActivity) && request.ServingActivity.Definition.Component.AssignedNode != null)
             {
                 node = request.ServingActivity.Definition.Component.AssignedNode;
             }
@@ -123,6 +136,10 @@ namespace Research.ArcSim.Allocators
                     node = AllocateNode(request.ServingActivity.Definition.Component);
             }
 
+            if (node == null)
+            {
+                ;
+            }
             Allocations.Add(new Allocation
             {
                 ComputingNode = node,
@@ -143,63 +160,70 @@ namespace Research.ArcSim.Allocators
                     nodeUtil.Node.CalculateTotalCost(nodeUtil.Util, costProfile, simulationConfig);
                 }
 
-                Console.WriteLine();
-                Console.WriteLine("Allocation Report");
-                //Console.WriteLine($"Ave CPU: {Allocations.Average(a => a.ComputingNode.Utilization.CpuCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.ProcessingMSec):0}");
-                //Console.WriteLine($"Avg Mem: {Allocations.Average(a => a.ComputingNode.Utilization.MemoryCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.SwapingMSec):0}");
-                //Console.WriteLine($"Avg Net: {Allocations.Average(a => a.ComputingNode.Utilization.NetworkCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.TransmissionMSec):0}");
-                //Console.WriteLine($"Requests (Internet|Intranet|Internal): {Allocations.Sum(a => a.ComputingNode.Utilization.InternetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.IntranetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.InternalRequestCount)}");
+                console.WriteLine();
+                console.WriteLine("Allocation Report");
+                //console.WriteLine($"Ave CPU: {Allocations.Average(a => a.ComputingNode.Utilization.CpuCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.ProcessingMSec):0}");
+                //console.WriteLine($"Avg Mem: {Allocations.Average(a => a.ComputingNode.Utilization.MemoryCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.SwapingMSec):0}");
+                //console.WriteLine($"Avg Net: {Allocations.Average(a => a.ComputingNode.Utilization.NetworkCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.TransmissionMSec):0}");
+                //console.WriteLine($"Requests (Internet|Intranet|Internal): {Allocations.Sum(a => a.ComputingNode.Utilization.InternetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.IntranetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.InternalRequestCount)}");
 
 
-                Console.WriteLine($"Stickiness: {Enum.GetName<Stickiness>(allocationStrategy.Stickiness)} ");
+                console.WriteLine($"Stickiness: {Enum.GetName<Stickiness>(allocationStrategy.Stickiness)} ");
 
                 if (allocationStrategy.Stickiness == Stickiness.OnDemand)
                 {
-                    Console.WriteLine($"Total|Avg Dur (mSec): {utilizations.Sum(nodeUtil => nodeUtil.Util.AggDurationMSec):0} | {utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec):0}");
-                    Console.WriteLine($"Total|Avg Cost ($): {utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost):0.000000} | {utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost):0.000000}");
+                    AllocationResults.TotalCost = utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost);
+                    AllocationResults.AverageCost = utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost);
+                    AllocationResults.TotalRequestTime = utilizations.Sum(nodeUtil => nodeUtil.Util.EndTime - nodeUtil.Util.StartTime);
+                    AllocationResults.AvgRequestTime = utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec);
                 }
                 else
                 {
-                    Console.WriteLine($"Total|Avg Dur (mSec): {utilizations.Sum(nodeUtil => nodeUtil.Util.EndTime - nodeUtil.Util.StartTime):0} | {utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec):0}");
-                    Console.WriteLine($"Total|Avg Cost ($): {utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost):0.000000} | {utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost):0.000000}");
+                    AllocationResults.TotalCost = utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost);
+                    AllocationResults.AverageCost = utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost);
+                    AllocationResults.TotalRequestTime = utilizations.Sum(nodeUtil => nodeUtil.Util.EndTime - nodeUtil.Util.StartTime);
+                    AllocationResults.AvgRequestTime = utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec);
                 }
+
+                console.WriteLine($"Total|Avg Dur (mSec): {AllocationResults.TotalRequestTime:0} | {AllocationResults.AvgRequestTime:0}");
+                console.WriteLine($"Total|Avg Cost ($): {AllocationResults.TotalCost:0.000000} | {AllocationResults.AverageCost:0.000000}");
             }
 
             if (reportSettings.ShowNodeSummaries)
             {
-                Console.WriteLine();
+                console.WriteLine();
 
                 foreach (var node in nodes)
                 {
-                    Console.WriteLine($"Node {node.Id}");
-                    Console.WriteLine($"Total Duration: {node.Utilizations.SelectMany(u => u.Utilization).Sum(u => u.TotalMSec):0}");
-                    Console.WriteLine($"Total Cost: {node.Utilizations.SelectMany(u => u.Utilization).Sum(n => n.TotalCost):0.000000}");
+                    console.WriteLine($"Node {node.Id}");
+                    console.WriteLine($"Total Duration: {node.Utilizations.SelectMany(u => u.Utilization).Sum(u => u.TotalMSec):0}");
+                    console.WriteLine($"Total Cost: {node.Utilizations.SelectMany(u => u.Utilization).Sum(n => n.TotalCost):0.000000}");
                 }
             }
 
             if (reportSettings.ShowNodeAllocations)
             {
-                Console.WriteLine();
+                console.WriteLine();
 
                 foreach (var node in nodes)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Node {node.Id}");
+                    console.WriteLine();
+                    console.WriteLine($"Node {node.Id}");
 
                     foreach (var coreUtil in node.Utilizations)
                     {
-                        Console.WriteLine();
-                        Console.WriteLine($"- Core {coreUtil.Core}");
+                        console.WriteLine();
+                        console.WriteLine($"- Core {coreUtil.Core}");
                         foreach (var utilization in coreUtil.Utilization)
                         {
-                            Console.Write($"Req {utilization.Request.Id}: {utilization.StartTime}|{utilization.EndTime}|{utilization.AssignedCore}".PadRight(30));
+                            console.Write($"Req {utilization.Request.Id}: {utilization.StartTime}|{utilization.EndTime}|{utilization.AssignedCore}".PadRight(30));
                             if (reportSettings.ShowRequestDetails)
                             {
-                                Console.WriteLine();
+                                console.WriteLine();
                                 utilization.Request.ServingActivity.ShowActivityTree();
                             }
                             if (coreUtil.Utilization.IndexOf(utilization) % 5 == 4)
-                                Console.WriteLine();
+                                console.WriteLine();
                         }
                     }
                 }

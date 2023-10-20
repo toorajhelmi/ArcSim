@@ -1,10 +1,8 @@
-﻿using System;
-using System.Text.Json.Serialization;
-using Research.ArcSim.Modeling.Arc;
+﻿using System.Text.Json.Serialization;
 
 namespace Research.ArcSim.Modeling.Simulation
 {
-	public enum Stickiness
+    public enum Stickiness
 	{
 		OnDemand,
 		Upfront

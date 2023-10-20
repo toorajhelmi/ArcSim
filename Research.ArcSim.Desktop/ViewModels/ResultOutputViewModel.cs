@@ -1,11 +1,9 @@
-﻿using System;
-using Prism.Mvvm;
+﻿using Prism.Mvvm;
 using Research.ArcSim.Extensions;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Research.ArcSim.Desktop.ViewModels
 {
-	public class OutputViewModel : BindableBase, IConsole
+    public class ResultOutputViewModel : BindableBase, IConsole
     {
         public string Output
         {
@@ -13,7 +11,7 @@ namespace Research.ArcSim.Desktop.ViewModels
             set;
         }
 
-        public OutputViewModel()
+        public ResultOutputViewModel()
 		{
         }
 

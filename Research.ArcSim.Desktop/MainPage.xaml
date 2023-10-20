@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Research.ArcSim.Desktop.MainPage"
              xmlns:v="clr-namespace:Research.ArcSim.Desktop.Views">
-    <v:SystemView Title="Simulation"/>
-    <v:SimulationView Title="Results"/>
+    <v:SimulationView Title="Simulation"/>
+    <v:ResultsView Title="Results"/>
     <v:ReportView Title="Reports"/>
 </TabbedPage>
 

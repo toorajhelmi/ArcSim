@@ -1,10 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Windows.Input;
 using Prism.Mvvm;
 using Research.ArcSim.Allocators;
 using Research.ArcSim.Builders;
-using Research.ArcSim.Extensions;
 using Research.ArcSim.Handler;
 using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Common;
@@ -18,7 +16,7 @@ using Location = Research.ArcSim.Modeling.Simulation.Location;
 
 namespace Research.ArcSim.Desktop.ViewModels
 {
-    public class SimulationViewModel: BindableBase
+    public class SimulationViewModel : BindableBase
     {
         private SimulationConfig simulationConfig;
         private ExecutionDemand executionProfile;
@@ -26,22 +24,118 @@ namespace Research.ArcSim.Desktop.ViewModels
         public string SimulationParameters { get; set; }
         public SystemDefViewModel SystemDefViewModel { get; set; } = new SystemDefViewModel();
         public OutputViewModel OutputViewModel { get; set; } = new OutputViewModel();
-        public Command RunCommand { get; set; }
+        public ResultOutputViewModel ResultOutputViewModel { get; set; } = new ResultOutputViewModel();
+
+        private string selectedSystemSize = "Tiny";
+
         public List<string> DeploymentOptions { get; set; } = new();
         public List<string> SelectedDeploymentOptions { get; set; } = new();
         public List<string> ProcessingOptions { get; set; } = new();
         public List<string> SelectedProcessingOptions { get; set; } = new();
+        public List<string> SystemSizeOptions { get; set; } = new();
+        public List<string> DependencyOptions { get; set; } = new();
+        public List<string> YesNoOptions { get; set; } = new();
+        public List<string> AllocationModeOptions { get; set; } = new();
+        public List<string> HorizontalScalingOptions { get; set; } = new();
+        public List<string> LoadBalancingStrategyOptions { get; set; } = new();
+        public List<string> RequestDistributionOptions { get; set; } = new();
+        public List<string> BandwidthPattenOptions { get; set; } = new();
         
+        public string SelectedSystemSize
+        {
+            get => selectedSystemSize;
+            set
+            {
+                SetProperty(ref selectedSystemSize, value);
+                switch (selectedSystemSize)
+                {
+                    case "Tiny":
+                        ModuleCount = 3;
+                        AvgFunctionPerModule = 3;
+                        InterModularDependency = "None";
+                        IntraModularDependency = "No";
+                        break;
+                    case "Large":
+                        ModuleCount = 10;
+                        AvgFunctionPerModule = 10;
+                        InterModularDependency = "High";
+                        IntraModularDependency = "No";
+                        break;
+                }
+            }
+        }
+
+        public int ModuleCount { get; set; } = 3;
+        public int AvgFunctionPerModule { get; set; } = 3;
+        public string IntraModularDependency { get; set; } = "No";
+        public string InterModularDependency { get; set; } = "None";
+        public string AllocationMode { get; set; } = "On Demand";
+        public string HorizontalScaling { get; set; } = "Cpu Controlled";
+        public int MinCpuUtilization { get; set; } = 30;
+        public int MaxCpuUtilization { get; set; } = 70;
+        public int MinQueueLength { get; set; } = 3;
+        public int MaxQueueLength { get; set; } = 7;
+        public int CooldownPeriod { get; set; } = 5 * Units.Minute;
+        public int DefaultInstances { get; set; } = 1;
+        public int MinInstances { get; set; } = 10;
+        public int MaxInstances { get; set; } = 10;
+        public string LoadBalancingStrategy { get; set; } = "Round Robin";
+        public string SkipExpiredRequests { get; set; } = "No";
+        public int TrialCount { get; set; } = 0;
+        public int MaxResponseTime { get; set; } = 1000;
+        public int TotalCost { get; set; } = 100000;
+        public string RequestDistribution { get; set; } = "Uniform";
+        public int AvgRequestPerSecond { get; set; } = 6;
+        public int SimulationDuration { get; set; } = 60;
+        public string InternetBandwidthPatten { get; set; } = "Fixed";
+        public int MaxInternetBandwidthKB { get; set; } = 12800;
+        public int InternetVarationPercent { get; set; } = 0;
+        public string IntranetBandwidthPatten { get; set; } = "Fixed";
+        public int MaxIntranetBandwidthKB { get; set; } = 102400;
+        public int IntranetVarationPercent { get; set; } = 0;
+
+        public Command RunCommand { get; set; }
+        public Command ClearCommnad { get; set; }
+
         public SimulationViewModel()
         {
-            RunCommand = new Command(Run);
+            RunCommand = new(Run);
+            ClearCommnad = new(OutputViewModel.Clear);
             InitializeConfig();
 
             DeploymentOptions.AddRange(Enum.GetNames<DeploymentStyle>());
             ProcessingOptions.AddRange(Enum.GetNames<ProcessingMode>());
+            SystemSizeOptions.AddRange(new[] { "Tiny", "Large" });
+            DependencyOptions.AddRange(new[] { "None", "Low", "Medium", "High", "Extreme" });
+            YesNoOptions.AddRange(new[] { "Yes", "No" });
+            AllocationModeOptions.AddRange(new[] { "On Demand", "Up Front" });
+            HorizontalScalingOptions.AddRange(new[] { "None", "Cpu Controlled", "Queue Controlled" });
+            LoadBalancingStrategyOptions.AddRange(new[] { "Round Robin", "Least Utilized", "Least Reponse Time" });
+            RequestDistributionOptions.AddRange(new[] { "Uniform", "Bursty" });
+            BandwidthPattenOptions.AddRange(new[] { "Fix", "Uniform" });
+
         }
 
         public async void Run()
+        {
+            SetConfig();
+            OutputViewModel.Output = "";
+
+            var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
+
+            SystemDefViewModel.Clear();
+            SystemGenerator.Instance.ShowSystem(system);
+
+            foreach (var serverStyle in SelectedDeploymentOptions.Select(Enum.Parse<DeploymentStyle>))
+            {
+                foreach (var processingMode in SelectedProcessingOptions.Select(Enum.Parse<ProcessingMode>))
+                {
+                    RunForConfig(simulationConfig, system, serverStyle, processingMode);
+                }
+            }
+        }
+
+        private async void SetConfig()
         {
             if (!SelectedDeploymentOptions.Any())
             {
@@ -65,19 +159,53 @@ namespace Research.ArcSim.Desktop.ViewModels
                 return;
             }
 
-            OutputViewModel.Output = "";
-
-            var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
-
-            SystemGenerator.Instance.ShowSystem(system);
-
-            foreach (var serverStyle in SelectedDeploymentOptions.Select(Enum.Parse<DeploymentStyle>))
+            simulationConfig.SystemDefinition = new SystemDefinition
             {
-                foreach (var processingMode in SelectedProcessingOptions.Select(Enum.Parse<ProcessingMode>))
+                ModuleCount = ModuleCount,
+                AvgfunctionsPerModule = AvgFunctionPerModule,
+                InterModularDependency = Enum.Parse<ModuleDependency>(InterModularDependency),
+                IntraModularDependency = IntraModularDependency == "Yes",
+                ActivityParallelization = Parallelization.InterActivity,
+            };
+
+            simulationConfig.SimulationStrategy = new SimulationStrategy
+            {
+                TotalCost = TotalCost,
+                MaxResponseTime = MaxResponseTime,
+                RequestDistribution = Enum.Parse<RequestDistribution>(RequestDistribution),
+                SimulationDurationSecs = SimulationDuration,
+                AvgReqPerSecond = AvgRequestPerSecond
+            };
+
+            simulationConfig.HandlingStrategy = new HandlingStrategy
+            {
+                SkipExpiredRequests = SkipExpiredRequests == "Yes",
+                TrialCount = TrialCount
+            };
+
+            simulationConfig.AllocationStrategy = new AllocationStrategy
+            {
+                HorizontalScalingConfig = new HorizontalScalingConfig
                 {
-                    RunForConfig(simulationConfig, system, serverStyle, processingMode);
+                    HorizonalScaling = Enum.Parse<HorizonalScaling>(HorizontalScaling.Replace(" ", "")),
+                    LoadBalancingStrategy = Enum.Parse<LoadBalancingStrategy>(LoadBalancingStrategy.Replace(" ", "")),
+                    MinCpuUtilization = MinCpuUtilization,
+                    MaxCpuUtilization = MaxCpuUtilization,
+                    MinInstances = MinInstances,
+                    MaxInstances = MaxInstances,
+                    DefaultInstance = DefaultInstances,
+                    CooldownPeriod = CooldownPeriod
                 }
-            }
+            };
+
+            Mandates.Add(new Mandate<DeploymentStyle, Stickiness>(
+                new List<(DeploymentStyle, Stickiness)> { (DeploymentStyle.Serverless, Stickiness.OnDemand) },
+                Stickiness.Upfront));
+
+            var internet = new BandwidthProfile(MaxInternetBandwidthKB);
+            var intranet = new BandwidthProfile(MaxIntranetBandwidthKB);
+
+            simulationConfig.Bandwidth = new Bandwidth(internet, intranet);
         }
 
         private void InitializeConfig()
@@ -93,15 +221,6 @@ namespace Research.ArcSim.Desktop.ViewModels
                 IntraModularDependency = false,
                 ActivityParallelization = Parallelization.InterActivity,
             };
-            //simulationConfig.SystemDefinition = new SystemDefinition
-            //{
-            //    Name = "Large System",
-            //    ModuleCount = 10,
-            //    AvgfunctionsPerModule = 10,
-            //    InterModularDependency = ModuleDependency.None,
-            //    IntraModularDependency = false,
-            //    ActivityParallelization = Parallelization.InterActivity,
-            //};
 
             simulationConfig.ComputingNodeConfig = new ComputingNodeConfig
             {
@@ -119,7 +238,7 @@ namespace Research.ArcSim.Desktop.ViewModels
             {
                 TotalCost = 10000000,
                 MaxResponseTime = 1000,
-                RequestDistribution = RequestDistribution.Uniform,
+                RequestDistribution = Modeling.Simulation.RequestDistribution.Uniform,
                 SimulationDurationSecs = 1 * Units.Minute / 1000,
                 AvgReqPerSecond = 6
             };
@@ -134,7 +253,7 @@ namespace Research.ArcSim.Desktop.ViewModels
                 HorizontalScalingConfig = new HorizontalScalingConfig
                 {
                     HorizonalScaling = HorizonalScaling.CpuControlled,
-                    LoadBalancingStrategy = LoadBalancingStrategy.RoundRobin,
+                    LoadBalancingStrategy = Modeling.Simulation.LoadBalancingStrategy.RoundRobin,
                     MinCpuUtilization = 30,
                     MaxCpuUtilization = 70,
                     MinInstances = 1,
@@ -178,18 +297,31 @@ namespace Research.ArcSim.Desktop.ViewModels
             Builder.Instance.ShowImplementation();
 
             FireForgetHandler.Create(simulationConfig);
-            Allocator.Create(simulationConfig, impl);
+            Allocator.Create(simulationConfig, impl, ResultOutputViewModel);
             Simulator.Create(simulationConfig, system, OutputViewModel);
             Simulator.Instance.Run(impl);
-            StoreResults(simulationConfig);
 
-            var requests = Simulation.Instance.requests.Values.SelectMany(r => r).Select(r => new Request
+            try
             {
-                Id = r.Id.ToString(),
-                Start = r.ServingActivity.StartTime,
-                Notes = $"DEPS: [{string.Join(',', r.ServingActivity.Definition.Dependencies.Select(d => d.Id))}] EP: [{r.ServingActivity.Definition.ExecutionProfile}]"
-            }).ToList();
-            ResultsViewModel.Instance.LoadResults(results, requests);
+                StoreResults(simulationConfig);
+
+                var requests = Simulation.Instance.requests.Values.SelectMany(r => r).Select(r => new Request
+                {
+                    Id = r.Id.ToString(),
+                    Start = r.ServingActivity.StartTime,
+                    Notes = $"DEPS: [{string.Join(',', r.ServingActivity.Definition.Dependencies.Select(d => d.Id))}] EP: [{r.ServingActivity.Definition.ExecutionProfile}]"
+                }).ToList();
+                ResultsViewModel.Instance.LoadResults(results, requests);
+                ReportViewModel.Instance.AppendResults(results, requests);
+                Allocator.Instance.ShowReport(new Allocator.ReportSettings
+                {
+                    ShowSummary = true
+                });
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         private void StoreResults(SimulationConfig simulationConfig)

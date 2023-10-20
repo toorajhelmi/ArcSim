@@ -2,12 +2,12 @@
 
 namespace Research.ArcSim.Desktop.Views;
 
-public partial class ReportView : ContentPage
+public partial class ResultsView : ContentPage
 {
-	public ReportView()
+	public ResultsView()
 	{
 		InitializeComponent();
 
-		BindingContext = new ReportViewModel();
+		BindingContext = ResultsViewModel.Instance;
 	}
 }
