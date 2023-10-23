@@ -22,9 +22,13 @@ namespace Research.ArcSim.Modeling.Simulation
 
     public class SimulationResult
     {
+        public string Descripton { get; set; }
         public SimulationConfig Conig { get; set; }
         public List<NodeResult> NodeResults { get; set; } = new();
         public List<CoreUtil> CoreUtils { get; set; } = new();
+        public int TotalRequests { get; set; }
+        public int CompletedRequests { get; set; }
+        public double SuccessRate => (double)CompletedRequests / TotalRequests;
     }
 }
 

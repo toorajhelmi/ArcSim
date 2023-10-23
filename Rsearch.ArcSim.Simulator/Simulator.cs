@@ -1,9 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using Research.ArcSim.Allocators;
 using Research.ArcSim.Extensions;
 using Research.ArcSim.Handler;
-using Research.ArcSim.Modeling.Core;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Simulation;
 using Research.ArcSim.Statistics;
@@ -13,12 +11,20 @@ namespace Rsearch.ArcSim.Simulator
 {
     public class Simulator
 	{
+		public class SimluatorResult
+		{
+			public int TotalRequests { get; set; }
+			public int CompletedRequests { get; set; }
+			public double SuccessRate => (double)CompletedRequests / TotalRequests;
+		}
+
 		private SimulationConfig simulationConfig;
         private SimulationStrategy simulationStrategy;
         private AS.System system;
 		private IConsole console;
         private List<Request> originalRequests = new();
         public static Simulator Instance { private set; get; }
+		public SimluatorResult Results { get; set; } = new();
 
 		public static void Create(SimulationConfig simulationConfig, AS.System system, IConsole console)
 		{
@@ -33,7 +39,7 @@ namespace Rsearch.ArcSim.Simulator
 			StatisticsCalculator<Activity>.Create();
         }
 			
-        public void Run(LogicalImplementation implementation)
+        public void Run()
 		{
 			GenerateRequests();
 
@@ -66,6 +72,9 @@ namespace Rsearch.ArcSim.Simulator
 				if (timeIndex == Simulation.Instance.requests.Count)
 					break;
 			}
+
+			Results.TotalRequests = originalRequests.SelectMany(or => or.ServingActivity.Flatten()).Count();
+            Results.CompletedRequests = originalRequests.Where(r => r.ServingActivity.Completed).Select(r => r.ServingActivity).Count();
 
             StatisticsCalculator<Activity>.Instance.Log(() =>
 				originalRequests.Select(r => r.ServingActivity).ToList());

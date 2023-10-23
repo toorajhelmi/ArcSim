@@ -15,6 +15,9 @@
                         <Label Text="Req Count" HorizontalOptions="Center" VerticalOptions="Center"/>
                     </Frame>
                     <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                        <Label Text="Success Rate" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
                         <Label Text="Avg Time (mS)" HorizontalOptions="Center" VerticalOptions="Center"/>
                     </Frame>
                     <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
@@ -49,14 +52,14 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <HorizontalStackLayout>
-                                <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                                <Frame BorderColor="Gray" Padding="0" WidthRequest="200" CornerRadius="0" BackgroundColor="Transparent">
                                     <Label Text="{Binding ScenarioDesc}" HorizontalOptions="Center" VerticalOptions="Center"/>
                                 </Frame>
                                 <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
-                                    <Label Text="{Binding Cost}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                    <Label Text="{Binding RequestCount}" HorizontalOptions="Center" VerticalOptions="Center"/>
                                 </Frame>
                                 <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
-                                    <Label Text="{Binding RequestCount}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                    <Label Text="{Binding SuccessRate}" HorizontalOptions="Center" VerticalOptions="Center"/>
                                 </Frame>
                                 <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
                                     <Label Text="{Binding AverageTime}" HorizontalOptions="Center" VerticalOptions="Center"/>
@@ -64,6 +67,9 @@
                                 <Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
                                     <Label Text="{Binding TotalCost}" HorizontalOptions="Center" VerticalOptions="Center"/>
                                 </Frame>
+                                <!--<Frame BorderColor="Gray" Padding="0" WidthRequest="100" CornerRadius="0" BackgroundColor="Transparent">
+                                    <Label Text="{Binding TotalCost}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Frame>-->
                             </HorizontalStackLayout>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>

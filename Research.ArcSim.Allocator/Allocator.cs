@@ -152,41 +152,12 @@ namespace Research.ArcSim.Allocators
         public void ShowReport(ReportSettings reportSettings)
         {
             var nodes = Allocations.Select(a => a.ComputingNode).Distinct();
+
             if (reportSettings.ShowSummary)
             {
-                var utilizations = nodes.Select(n => new { Node = n, Util = n.GetUtilization() }).ToList();
-                foreach (var nodeUtil in utilizations)
-                {
-                    nodeUtil.Node.CalculateTotalCost(nodeUtil.Util, costProfile, simulationConfig);
-                }
-
                 console.WriteLine();
                 console.WriteLine("Allocation Report");
-                //console.WriteLine($"Ave CPU: {Allocations.Average(a => a.ComputingNode.Utilization.CpuCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.ProcessingMSec):0}");
-                //console.WriteLine($"Avg Mem: {Allocations.Average(a => a.ComputingNode.Utilization.MemoryCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.SwapingMSec):0}");
-                //console.WriteLine($"Avg Net: {Allocations.Average(a => a.ComputingNode.Utilization.NetworkCost)}|{Allocations.Average(a => a.ComputingNode.Utilization.TransmissionMSec):0}");
-                //console.WriteLine($"Requests (Internet|Intranet|Internal): {Allocations.Sum(a => a.ComputingNode.Utilization.InternetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.IntranetRequestCount)}|{Allocations.Sum(a => a.ComputingNode.Utilization.InternalRequestCount)}");
-
-
-                console.WriteLine($"Stickiness: {Enum.GetName<Stickiness>(allocationStrategy.Stickiness)} ");
-
-                if (allocationStrategy.Stickiness == Stickiness.OnDemand)
-                {
-                    AllocationResults.TotalCost = utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost);
-                    AllocationResults.AverageCost = utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost);
-                    AllocationResults.TotalRequestTime = utilizations.Sum(nodeUtil => nodeUtil.Util.EndTime - nodeUtil.Util.StartTime);
-                    AllocationResults.AvgRequestTime = utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec);
-                }
-                else
-                {
-                    AllocationResults.TotalCost = utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost);
-                    AllocationResults.AverageCost = utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost);
-                    AllocationResults.TotalRequestTime = utilizations.Sum(nodeUtil => nodeUtil.Util.EndTime - nodeUtil.Util.StartTime);
-                    AllocationResults.AvgRequestTime = utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec);
-                }
-
-                console.WriteLine($"Total|Avg Dur (mSec): {AllocationResults.TotalRequestTime:0} | {AllocationResults.AvgRequestTime:0}");
-                console.WriteLine($"Total|Avg Cost ($): {AllocationResults.TotalCost:0.000000} | {AllocationResults.AverageCost:0.000000}");
+                console.WriteLine($"Stickiness: {Enum.GetName(allocationStrategy.Stickiness)} ");
             }
 
             if (reportSettings.ShowNodeSummaries)
@@ -228,6 +199,33 @@ namespace Research.ArcSim.Allocators
                     }
                 }
             }
+        }
+
+        public void EvaluateResults()
+        {
+            var nodes = Allocations.Select(a => a.ComputingNode).Distinct();
+            var utilizations = nodes.Select(n => new { Node = n, Util = n.GetUtilization() }).ToList();
+            foreach (var util in utilizations)
+            {
+                util.Node.CalculateTotalCost(util.Util, costProfile, simulationConfig);
+            }
+            if (allocationStrategy.Stickiness == Stickiness.OnDemand)
+            {
+                AllocationResults.TotalCost = utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost);
+                AllocationResults.AverageCost = utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost);
+                AllocationResults.TotalRequestTime = utilizations.Sum(nodeUtil => nodeUtil.Util.EndTime - nodeUtil.Util.StartTime);
+                AllocationResults.AvgRequestTime = utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec);
+            }
+            else
+            {
+                AllocationResults.TotalCost = utilizations.Sum(nodeUtil => nodeUtil.Util.TotalCost);
+                AllocationResults.AverageCost = utilizations.Average(nodeUtil => nodeUtil.Util.TotalCost);
+                AllocationResults.TotalRequestTime = utilizations.Sum(nodeUtil => nodeUtil.Util.EndTime - nodeUtil.Util.StartTime);
+                AllocationResults.AvgRequestTime = utilizations.Average(nodeUtil => nodeUtil.Util.AggDurationMSec);
+            }
+
+            console.WriteLine($"Total|Avg Dur (mSec): {AllocationResults.TotalRequestTime:0} | {AllocationResults.AvgRequestTime:0}");
+            console.WriteLine($"Total|Avg Cost ($): {AllocationResults.TotalCost:0.000000} | {AllocationResults.AverageCost:0.000000}");
         }
 
         private ComputingNode AllocateNode(Component component)

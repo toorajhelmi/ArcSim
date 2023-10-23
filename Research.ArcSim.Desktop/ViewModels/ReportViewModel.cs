@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using Research.ArcSim.Allocators;
+using Research.ArcSim.Extensions;
 using Research.ArcSim.Modeling.Simulation;
-using static Research.ArcSim.Allocators.Allocator;
 
 namespace Research.ArcSim.Desktop.ViewModels
 {
@@ -11,6 +11,7 @@ namespace Research.ArcSim.Desktop.ViewModels
         {
             public string ScenarioDesc { get; set; }
             public double RequestCount { get; set; }
+            public double SuccessRate { get; set; }
             public double TotalCost { get; set; }
             public double AverageTime { get; set; }
         }
@@ -27,13 +28,17 @@ namespace Research.ArcSim.Desktop.ViewModels
 
         public void AppendResults(List<SimulationResult> simulationResults, List<Request> requests)
         {
-            Results.Add(new ScenarioResult
+            Results.AddRange(simulationResults.Select(sr => new ScenarioResult
             {
-                RequestCount = simulationResults.Count,
+                ScenarioDesc = sr.Descripton,
+                RequestCount = sr.TotalRequests,
+                SuccessRate = sr.SuccessRate,
                 TotalCost = Allocator.Instance.AllocationResults.TotalCost,
                 AverageTime = Allocator.Instance.AllocationResults.AvgRequestTime
-            });
+            }));
         }
+
+        public void ClearResults() => Results.Clear();
     }
 }
 

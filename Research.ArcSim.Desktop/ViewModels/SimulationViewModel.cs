@@ -120,6 +120,7 @@ namespace Research.ArcSim.Desktop.ViewModels
         {
             SetConfig();
             OutputViewModel.Output = "";
+            ReportViewModel.Instance.ClearResults();
 
             var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
 
@@ -299,11 +300,11 @@ namespace Research.ArcSim.Desktop.ViewModels
             FireForgetHandler.Create(simulationConfig);
             Allocator.Create(simulationConfig, impl, ResultOutputViewModel);
             Simulator.Create(simulationConfig, system, OutputViewModel);
-            Simulator.Instance.Run(impl);
+            Simulator.Instance.Run();
 
             try
             {
-                StoreResults(simulationConfig);
+                StoreResults(simulationConfig, serverStyle, processingMode);
 
                 var requests = Simulation.Instance.requests.Values.SelectMany(r => r).Select(r => new Request
                 {
@@ -311,6 +312,8 @@ namespace Research.ArcSim.Desktop.ViewModels
                     Start = r.ServingActivity.StartTime,
                     Notes = $"DEPS: [{string.Join(',', r.ServingActivity.Definition.Dependencies.Select(d => d.Id))}] EP: [{r.ServingActivity.Definition.ExecutionProfile}]"
                 }).ToList();
+
+                Allocator.Instance.EvaluateResults();
                 ResultsViewModel.Instance.LoadResults(results, requests);
                 ReportViewModel.Instance.AppendResults(results, requests);
                 Allocator.Instance.ShowReport(new Allocator.ReportSettings
@@ -324,9 +327,14 @@ namespace Research.ArcSim.Desktop.ViewModels
             }
         }
 
-        private void StoreResults(SimulationConfig simulationConfig)
+        private void StoreResults(SimulationConfig simulationConfig, DeploymentStyle serverStyle, ProcessingMode processingMode)
         {
-            var simulationResult = new SimulationResult();
+            var simulationResult = new SimulationResult
+            {
+                TotalRequests = Simulator.Instance.Results.TotalRequests,
+                CompletedRequests = Simulator.Instance.Results.CompletedRequests,
+                Descripton = $"{Enum.GetName(serverStyle)}"
+            };
 
             foreach (var node in Allocator.Instance.Allocations.GroupBy(a => a.ComputingNode))
             {

@@ -8,6 +8,6 @@ public partial class ReportView : ContentPage
 	{
 		InitializeComponent();
 
-		BindingContext = new ReportViewModel();
+		BindingContext = ReportViewModel.Instance;
 	}
 }
