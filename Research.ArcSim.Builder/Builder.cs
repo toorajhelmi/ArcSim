@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Research.ArcSim.Extensions;
 using Research.ArcSim.Modeling;
@@ -9,7 +8,7 @@ using AS = Research.ArcSim.Modeling;
 
 namespace Research.ArcSim.Builders
 {
-	public class Builder
+    public class Builder
 	{
         private LogicalImplementation implementation;
         private IConsole console;

@@ -8,6 +8,7 @@ using Research.ArcSim.Extensions;
 using Research.ArcSim.Handler;
 using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Common;
+using Research.ArcSim.Modeling.Core;
 using Research.ArcSim.Modeling.Logical;
 using Research.ArcSim.Modeling.Logincal;
 using Research.ArcSim.Modeling.Physical;
@@ -62,6 +63,7 @@ namespace Research.ArcSim.Desktop.ViewModels
         public SystemDefViewModel SystemDefViewModel { get; set; } = new SystemDefViewModel();
         public OutputViewModel OutputViewModel { get; set; } = new OutputViewModel();
         public ResultOutputViewModel ResultOutputViewModel { get; set; } = new ResultOutputViewModel();
+        public ObservableCollection<LogicalImplementation> Logicals { get; set; } = new();
 
         public List<string> DeploymentOptions { get; set; } = new();
         public List<string> SelectedDeploymentOptions { get; set; } = new();
@@ -185,6 +187,7 @@ namespace Research.ArcSim.Desktop.ViewModels
 
         public async void Run()
         {
+            Logicals.Clear();
             SetConfig();
             OutputViewModel.Output = "";
             ReportViewModel.Instance.ClearResults();
@@ -730,6 +733,8 @@ namespace Research.ArcSim.Desktop.ViewModels
 
             var impl = Builder.Instance.Build(system, simulationConfig.Arch, SystemDefViewModel);
             Builder.Instance.ShowImplementation();
+
+            Logicals.Add(impl);
 
             FireForgetHandler.Create(simulationConfig);
             Allocator.Create(simulationConfig, impl, ResultOutputViewModel);

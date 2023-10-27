@@ -12,7 +12,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 
 		<!-- Display name -->
-		<ApplicationTitle>Research.ArcSim.Desktop</ApplicationTitle>
+		<ApplicationTitle>ArchSim</ApplicationTitle>
 
 		<!-- App Identifier -->
 		<ApplicationId>com.companyname.research.arcsim.desktop</ApplicationId>
@@ -35,9 +35,6 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
-
-		<!-- Splash Screen -->
 		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
 
 		<!-- Images -->
@@ -49,6 +46,7 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+		<MauiIcon Include="Resources\AppIcon\appicon.png" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -61,6 +59,7 @@
 	  <None Remove="Views\" />
 	  <None Remove="ViewModels\" />
 	  <None Remove="Models\" />
+	  <None Remove="Resources\AppIcon\appicon.png" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Views\" />
@@ -76,5 +75,8 @@
 	  <ProjectReference Include="..\Rsearch.ArcSim.Simulator\Rsearch.ArcSim.Simulator.csproj" />
 	  <ProjectReference Include="..\Research.ArcSim.Builder\Research.ArcSim.Builder.csproj" />
 	  <ProjectReference Include="..\Research.ArcSim.Allocator\Research.ArcSim.Allocator.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <BundleResource Include="Resources\AppIcon\appicon.png" />
 	</ItemGroup>
 </Project>

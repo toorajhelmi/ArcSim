@@ -115,7 +115,6 @@
         <Grid Grid.Row="1" BackgroundColor="Black">
             <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
                 <Button Text="Clear" Command="{Binding ClearCommand}" Margin="5"/>
-                <Button Text="Load Financial" Command="{Binding LoadFinancialCommand}" Margin="5"/>
                 <Button Text="Load Ecommerce" Command="{Binding LoadEcommerceCommand}" Margin="5"/>
                 <Button Text="Load Financial" Command="{Binding LoadFinancialCommand}" Margin="5"/>
                 <Button Text="Apply" Command="{Binding ApplySystemComponentCommand}" Clicked="Apply_Clicked" Margin="5"/>

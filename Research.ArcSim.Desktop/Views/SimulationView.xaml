@@ -240,7 +240,7 @@
                         </tk:Expander>
                         <tk:Expander IsExpanded="False" BackgroundColor="#5F6369" Margin="1">
                             <tk:Expander.Header>
-                                <Label Text="Bandwith Model ▼" FontSize="Header" Padding="5"/>
+                                <Label Text="Bandwidth Model ▼" FontSize="Header" Padding="5"/>
                             </tk:Expander.Header>
                             <VerticalStackLayout>
                                 <StackLayout Grid.Row="1" Margin="5">

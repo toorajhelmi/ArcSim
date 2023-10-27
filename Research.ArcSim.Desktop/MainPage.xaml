@@ -4,6 +4,7 @@
              x:Class="Research.ArcSim.Desktop.MainPage"
              xmlns:v="clr-namespace:Research.ArcSim.Desktop.Views">
     <v:SimulationView Title="Simulation"/>
+    <v:SystemView Title="System"/>
     <v:ResultsView Title="Results"/>
     <v:ReportView Title="Reports"/>
 </TabbedPage>
