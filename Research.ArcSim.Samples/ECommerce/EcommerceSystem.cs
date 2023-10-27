@@ -31,14 +31,14 @@ namespace Research.ArcSim.Samples.ECommerce
             {
                 Name = "Search UI",
                 Description = "Allows user to search for an item",
-                Layer = Layer.Presentation
+                Layer = Layer.UI
             });
 
             searchFunction.Activities.Add(new ActivityDefinition
             {
                 Name = "Lookup Item",
                 Description = "Tries to find the item either locally or by calling an API",
-                Layer = Layer.Presentation
+                Layer = Layer.UI
             });
 
             searchFunction.Activities.Add(new ActivityDefinition
@@ -94,7 +94,7 @@ namespace Research.ArcSim.Samples.ECommerce
             {
                 Name = "Add Item UI",
                 Description = "The UI to select and item, attributes, and quantities to buy",
-                Layer = Layer.Presentation
+                Layer = Layer.UI
             });
 
             addItemFunction.Activities.AddX(new ActivityDefinition
@@ -108,7 +108,7 @@ namespace Research.ArcSim.Samples.ECommerce
             {
                 Name = "Confirm Order",
                 Description = "The UI to confirm the order",
-                Layer = Layer.Presentation
+                Layer = Layer.UI
             });
 
             var payFunction = orderingModule.Functions.AddX(new Function
@@ -121,7 +121,7 @@ namespace Research.ArcSim.Samples.ECommerce
             {
                 Name = "Payment UI",
                 Description = "The UI used to make a payment",
-                Layer = Layer.Presentation
+                Layer = Layer.UI
             });
 
             payFunction.Activities.AddX(new ActivityDefinition

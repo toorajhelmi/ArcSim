@@ -1,8 +1,10 @@
-﻿using System.Text.Json;
+﻿using System.Collections.ObjectModel;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Prism.Mvvm;
 using Research.ArcSim.Allocators;
 using Research.ArcSim.Builders;
+using Research.ArcSim.Extensions;
 using Research.ArcSim.Handler;
 using Research.ArcSim.Modeling.Arc;
 using Research.ArcSim.Modeling.Common;
@@ -18,15 +20,48 @@ namespace Research.ArcSim.Desktop.ViewModels
 {
     public class SimulationViewModel : BindableBase
     {
+        public class SystemComponent : BindableBase
+        {
+            private string horizontalTag;
+            private string verticalTag;
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public string HorizontalTag
+            {
+                get => horizontalTag;
+                set
+                {
+                    if (value != null)
+                        SetProperty(ref horizontalTag, value);
+                }
+            }
+            public string VerticalTag
+            {
+                get => verticalTag;
+                set
+                {
+                    if (value != null)
+                        SetProperty(ref verticalTag, value);
+                }
+            }
+
+            public DemandLevel Cpu { get; set; } = DemandLevel.Medium;
+            public DemandLevel Mem { get; set; } = DemandLevel.Medium;
+            public DemandLevel BW { get; set; } = DemandLevel.Medium;
+        }
+
+        private static SimulationViewModel instance;
         private SimulationConfig simulationConfig;
         private ExecutionDemand executionProfile;
         private List<SimulationResult> results = new();
+        private bool useCustomSystemDef;
+        private string selectedSystemSize = "Tiny";
+
+        public static SimulationViewModel Instance => instance;
         public string SimulationParameters { get; set; }
         public SystemDefViewModel SystemDefViewModel { get; set; } = new SystemDefViewModel();
         public OutputViewModel OutputViewModel { get; set; } = new OutputViewModel();
         public ResultOutputViewModel ResultOutputViewModel { get; set; } = new ResultOutputViewModel();
-
-        private string selectedSystemSize = "Tiny";
 
         public List<string> DeploymentOptions { get; set; } = new();
         public List<string> SelectedDeploymentOptions { get; set; } = new();
@@ -40,7 +75,8 @@ namespace Research.ArcSim.Desktop.ViewModels
         public List<string> LoadBalancingStrategyOptions { get; set; } = new();
         public List<string> RequestDistributionOptions { get; set; } = new();
         public List<string> BandwidthPattenOptions { get; set; } = new();
-        
+        public List<DemandLevel> DemandOptions { get; set; } = new();
+
         public string SelectedSystemSize
         {
             get => selectedSystemSize;
@@ -64,6 +100,18 @@ namespace Research.ArcSim.Desktop.ViewModels
                 }
             }
         }
+
+        public bool UseCustomSystemDef
+        {
+            get => useCustomSystemDef;
+            set => SetProperty(ref useCustomSystemDef, value);
+        }
+
+        public ObservableCollection<SystemComponent> SystemComponents { get; set; } = new();
+        public ObservableCollection<string> HorizontalTagOptions { get; set; } = new();
+        public ObservableCollection<string> VerticalTagOptions { get; set; } = new();
+        public ObservableCollection<ObservableCollection<bool>> Dependencies { get; set; } = new();
+        public ObservableCollection<int> Indexes { get; set; } = new();
 
         public int ModuleCount { get; set; } = 3;
         public int AvgFunctionPerModule { get; set; } = 3;
@@ -96,11 +144,19 @@ namespace Research.ArcSim.Desktop.ViewModels
 
         public Command RunCommand { get; set; }
         public Command ClearCommnad { get; set; }
+        public Command AddSystemComponentCommand { get; set; }
+        public Command ApplySystemComponentCommand { get; set; }
+        public Command LoadEcommerceCommand { get; set; }
+        public Command LoadFinancialCommand { get; set; }
+        public Command ClearCommand { get; set; }
 
-        public SimulationViewModel()
+        static SimulationViewModel()
         {
-            RunCommand = new(Run);
-            ClearCommnad = new(OutputViewModel.Clear);
+            instance = new SimulationViewModel();
+        }
+
+        private SimulationViewModel()
+        {
             InitializeConfig();
 
             DeploymentOptions.AddRange(Enum.GetNames<DeploymentStyle>());
@@ -113,7 +169,18 @@ namespace Research.ArcSim.Desktop.ViewModels
             LoadBalancingStrategyOptions.AddRange(new[] { "Round Robin", "Least Utilized", "Least Reponse Time" });
             RequestDistributionOptions.AddRange(new[] { "Uniform", "Bursty" });
             BandwidthPattenOptions.AddRange(new[] { "Fix", "Uniform" });
+            DemandOptions.AddRange(new[] { DemandLevel.Low, DemandLevel.Medium, DemandLevel.High });
 
+            SystemComponents.Add(new SystemComponent { Id = 1 });
+            HorizontalTagOptions.AddRange(new[] { "UI", "API", "DB" });
+
+            RunCommand = new (Run);
+            ClearCommnad = new(OutputViewModel.Clear);
+            AddSystemComponentCommand = new Command(() => AddCustomComponent(null));
+            //ApplySystemComponentCommand = new Command(LoadCustomComponents);
+            LoadEcommerceCommand = new Command(LoadEcommerce);
+            LoadFinancialCommand = new Command(LoadFinancial);
+            ClearCommand = new Command(Clear);
         }
 
         public async void Run()
@@ -122,7 +189,20 @@ namespace Research.ArcSim.Desktop.ViewModels
             OutputViewModel.Output = "";
             ReportViewModel.Instance.ClearResults();
 
-            var system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
+            Modeling.System system = null;
+            if (useCustomSystemDef)
+                system = SystemGenerator.Instance.GenerateSystem(SystemComponents
+                    .Where(s => !string.IsNullOrEmpty(s.Name))
+                    .Select(sc => new Modeling.Logical.SystemComponent
+                {
+                    Name = sc.Name,
+                    ExecutionDemand = new ExecutionDemand(sc.Cpu, sc.Mem, sc.BW),
+                    HorizontalTag = sc.HorizontalTag,
+                    VerticalTag = sc.VerticalTag,
+                    Id = sc.Id
+                }).ToList(), Dependencies, SystemDefViewModel, executionProfile);
+            else
+                system = SystemGenerator.Instance.GenerateSystem(simulationConfig.SystemDefinition, false, false, SystemDefViewModel, executionProfile);
 
             SystemDefViewModel.Clear();
             SystemGenerator.Instance.ShowSystem(system);
@@ -134,6 +214,360 @@ namespace Research.ArcSim.Desktop.ViewModels
                     RunForConfig(simulationConfig, system, serverStyle, processingMode);
                 }
             }
+        }
+
+        private void Clear()
+        {
+            SystemComponents.Clear();
+            Dependencies.Clear();
+            Indexes.Clear();
+        }
+
+        private void LoadFinancial()
+        {
+            Clear();
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 1,
+                Name = "Ext Sys",
+                HorizontalTag = "App",
+                VerticalTag = "Ext Sys",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 2,
+                Name = "Rep/Int",
+                HorizontalTag = "App",
+                VerticalTag = "Rep/Int",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 3,
+                Name = "Ind Mgmt",
+                HorizontalTag = "App",
+                VerticalTag = "Ind Mgmt",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 4,
+                Name = "Mart App",
+                HorizontalTag = "App",
+                VerticalTag = "Mart App",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 5,
+                Name = "Hist Data",
+                HorizontalTag = "App",
+                VerticalTag = "Hist Data",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 6,
+                Name = "Anal",
+                HorizontalTag = "App",
+                VerticalTag = "Anal",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 7,
+                Name = "Common Data",
+                HorizontalTag = "Servies",
+                VerticalTag = "Common Data",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 8,
+                Name = "RT Data",
+                HorizontalTag = "Servies",
+                VerticalTag = "RT Data",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 9,
+                Name = "Mart Data",
+                HorizontalTag = "Servies",
+                VerticalTag = "Mart Data",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 10,
+                Name = "LDA",
+                HorizontalTag = "Servies",
+                VerticalTag = "LDA",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 11,
+                Name = "SDA",
+                HorizontalTag = "Exchange",
+                VerticalTag = "SDA",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 12,
+                Name = "SDM",
+                HorizontalTag = "Exchange",
+                VerticalTag = "SDA",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 13,
+                Name = "UDAT",
+                HorizontalTag = "Exchange",
+                VerticalTag = "USDA",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 14,
+                Name = "UIDX",
+                HorizontalTag = "Exchange",
+                VerticalTag = "USDA",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 15,
+                Name = "USDA",
+                HorizontalTag = "Exchange",
+                VerticalTag = "USDA",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 16,
+                Name = "Offline",
+                HorizontalTag = "Exchange",
+                VerticalTag = "HDAS",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 17,
+                Name = "Nearline",
+                HorizontalTag = "Exchange",
+                VerticalTag = "HDAS",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 18,
+                Name = "HDAS",
+                HorizontalTag = "Exchange",
+                VerticalTag = "HDAS",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 19,
+                Name = "Batch Col",
+                HorizontalTag = "Access",
+                VerticalTag = "Batch Col",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 20,
+                Name = "RT Col",
+                HorizontalTag = "Access",
+                VerticalTag = "RT Col",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 21,
+                Name = "Unst Col",
+                HorizontalTag = "Access",
+                VerticalTag = "Unst Col",
+            });
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 22,
+                Name = "Ext Col",
+                HorizontalTag = "Access",
+                VerticalTag = "Ext Col",
+            });
+
+            for (int i = 0; i < SystemComponents.Count; i++)
+            {
+                Dependencies.Add(new ObservableCollection<bool>());
+                Indexes.Add(i);
+            }
+
+            var f = false;
+            var t = true;
+            ///////////////////////////////// 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21,22 });
+            Dependencies[0].AddRange(new[]  { f, f, f, f, f, f, t, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[1].AddRange(new[]  { f, f, f, f, f, f, f, t, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[2].AddRange(new[]  { f, f, f, f, f, f, f, f, t, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[3].AddRange(new[]  { f, f, f, f, f, f, f, f, t, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[4].AddRange(new[]  { f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, t, f, f, f, f });
+            Dependencies[5].AddRange(new[]  { f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[6].AddRange(new[]  { f, f, f, f, f, f, f, f, f, t, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[7].AddRange(new[]  { t, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[8].AddRange(new[]  { f, t, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[9].AddRange(new[]  { f, f, f, f, f, t, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[10].AddRange(new[] { f, f, f, f, f, f, t, f, t, t, f, f, f, f, f, f, f, t, f, f, f, f });
+            Dependencies[11].AddRange(new[] { f, f, t, t, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[12].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[13].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[14].AddRange(new[] { f, f, f, f, f, f, f, f, t, t, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[15].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[16].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f, f, f, f, f, t, f, f, f, f, f, f });
+            Dependencies[17].AddRange(new[] { f, f, f, f, f, f, f, f, t, t, f, f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[18].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f, t, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[19].AddRange(new[] { f, f, f, f, f, f, f, t, f, f, f, t, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[20].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f, f, t, t, f, f, f, f, f, f, f, f });
+            Dependencies[21].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f, t, f, f, f, t, f, f, f, f, f, f });
+        }
+
+        private void LoadEcommerce()
+        {
+            Clear();
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 1,
+                Name = "ADM",
+                HorizontalTag = "UI",
+                VerticalTag = "ADM",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 2,
+                Name = "CUS",
+                HorizontalTag = "API",
+                VerticalTag = "CUS",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 3,
+                Name = "CAT",
+                HorizontalTag = "API",
+                VerticalTag = "CAT",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 4,
+                Name = "QUE",
+                HorizontalTag = "API",
+                VerticalTag = "QUE",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 5,
+                Name = "CHE",
+                HorizontalTag = "API",
+                VerticalTag = "CHE",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 6,
+                Name = "ORD",
+                HorizontalTag = "API",
+                VerticalTag = "ORD",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 7,
+                Name = "CLD",
+                HorizontalTag = "Cloud",
+                VerticalTag = "CLD",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 8,
+                Name = "DB1",
+                HorizontalTag = "DB",
+                VerticalTag = "CUS",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 9,
+                Name = "DB2",
+                HorizontalTag = "DB",
+                VerticalTag = "CHE",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 10,
+                Name = "DB3",
+                HorizontalTag = "DB",
+                VerticalTag = "ORD",
+            });
+
+            SystemComponents.Add(new SystemComponent
+            {
+                Id = 11,
+                Name = "AGG",
+                HorizontalTag = "DB",
+                VerticalTag = "CLD",
+            });
+
+            //foreach (var component in SystemComponents)
+            //{
+            //    AddCustomComponent(component);
+            //}
+
+            for (int i = 0; i < SystemComponents.Count; i++)
+            {
+                Dependencies.Add(new ObservableCollection<bool>());
+                Indexes.Add(i);
+            }
+
+            var f = false;
+            var t = true;
+            Dependencies[0].AddRange(new[] { f, t, t, t, t, t, f, f, f, f, f });
+            Dependencies[1].AddRange(new[] { f, f, t, f, f, f, f, t, f, f, f });
+            Dependencies[2].AddRange(new[] { f, f, f, f, f, f, t, f, f, f, f });
+            Dependencies[3].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, t });
+            Dependencies[4].AddRange(new[] { f, f, t, f, f, f, f, f, t, f, f });
+            Dependencies[5].AddRange(new[] { f, t, f, f, f, f, f, f, f, t, f });
+            Dependencies[6].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, t });
+            Dependencies[7].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[8].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[9].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f });
+            Dependencies[10].AddRange(new[] { f, f, f, f, f, f, f, f, f, f, f });
+        }
+
+        private void AddCustomComponent(SystemComponent component = null)
+        {
+            if (component == null)
+                component = new SystemComponent { Id = 1 };
+
+            if (SystemComponents.Any())
+            {
+                if (!VerticalTagOptions.Contains(SystemComponents.Last().VerticalTag))
+                    VerticalTagOptions.Add(SystemComponents.Last().VerticalTag);
+
+                if (!HorizontalTagOptions.Contains(SystemComponents.Last().HorizontalTag))
+                    HorizontalTagOptions.Add(SystemComponents.Last().HorizontalTag);
+
+
+                if (SystemComponents.Count > 0)
+                {
+                    component.Id = SystemComponents.Last().Id + 1;
+                    component.HorizontalTag = SystemComponents.Last().HorizontalTag;
+                    component.VerticalTag = SystemComponents.Last().VerticalTag;
+                }
+            }
+
+            //Add one cell to each existing row
+            for (int r = 0; r < SystemComponents.Count - 1; r++)
+            {
+                Dependencies.ElementAt(r).Add(false);
+            }
+
+            //Initialize the new row
+            Dependencies.Add(new ObservableCollection<bool>());
+            for (int c = 0; c < SystemComponents.Count; c++)
+            {
+                Dependencies.Last().Add(false);
+            }
+
+            SystemComponents.Add(component);
+            Indexes.Add(SystemComponents.Count - 1);
         }
 
         private async void SetConfig()

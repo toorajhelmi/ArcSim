@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Xml.Linq;
+using System.Collections.ObjectModel;
 using Research.ArcSim.Extensions;
 using Research.ArcSim.Modeling;
 using Research.ArcSim.Modeling.Logical;
@@ -10,7 +7,7 @@ using AS = Research.ArcSim.Modeling;
 
 namespace Research.ArcSim.Samples
 {
-	public class SystemGenerator
+    public class SystemGenerator
 	{
         static SystemGenerator() => Instance = new();
         private ExecutionDemand executionProfile;
@@ -50,7 +47,7 @@ namespace Research.ArcSim.Samples
             var activities = system.Modules.SelectMany(m => m.Functions.SelectMany(f => f.Activities)).ToList();
 
             console.WriteLine(new string('=', 30));
-            console.WriteLine($"Name: {system.SystemDefinition.Name}");
+            console.WriteLine($"Name: {system.SystemDefinition?.Name}");
             console.WriteLine($"{system.Modules.Count} Modules");
             console.WriteLine($"{system.Modules.Average(m => m.Functions.Count)} Avg Functions per Module");
             console.WriteLine($"{system.Modules.Average(m => m.Functions.Average(f => f.Activities.Count)):0.00} Avg Activities per Function");
@@ -118,7 +115,7 @@ namespace Research.ArcSim.Samples
                     var prActivity = new AS.ActivityDefinition
                     {
                         Name = $"Activity {moduleIndex}_{functionIndex}_PR",
-                        Layer = AS.Layer.Presentation,
+                        Layer = AS.Layer.UI,
                         Dependencies = !definition.IntraModularDependency ? new List<AS.ActivityDefinition>() : new List<AS.ActivityDefinition> { apiActivity },
                         Function = function
                     };
@@ -148,7 +145,7 @@ namespace Research.ArcSim.Samples
                 foreach (var function in module.Functions)
                 {
                     //Assuming only presentation level acitivities can depend on other modules
-                    foreach (var activity in function.Activities.Where(a => a.Layer == Layer.Presentation))
+                    foreach (var activity in function.Activities.Where(a => a.Layer == Layer.UI))
                     {
                         foreach (var depModule in module.Dependencies)
                         {
@@ -157,6 +154,67 @@ namespace Research.ArcSim.Samples
                             var depActivity = depActivities.ElementAt(random.Next(depActivities.Count()));
                             activity.Dependencies.Add(depActivity);
                         }                  
+                    }
+                }
+            }
+
+            return system;
+        }
+
+        public AS.System GenerateSystem(List<SystemComponent> systemComponents,
+            ObservableCollection<ObservableCollection<bool>> dependencies, IConsole console, ExecutionDemand executionProfile)
+        {
+            this.console = console;
+            this.executionProfile = executionProfile;
+            var system = new AS.System();
+            var moduleNames = systemComponents.Select(s => s.VerticalTag).Distinct();
+            var layersNames = systemComponents.Select(s => s.HorizontalTag).Distinct();
+
+            foreach (var moduleName in moduleNames)
+            {
+                var module = new AS.Module { Name = moduleName };
+                system.Modules.AddX(module);
+
+                foreach (var activityGroup in systemComponents.Where(s => s.VerticalTag == moduleName).GroupBy(s => s.Name))
+                {
+                    var function = new Modeling.Function
+                    {
+                        Name = activityGroup.Key,
+                        Module = module
+                    };
+
+                    module.Functions.AddX(function);
+
+                    foreach (var activityDef in activityGroup)
+                    {
+                        var activity = new ActivityDefinition
+                        {
+                            Name = $"Activity {moduleName}_{function.Name}_{activityDef.HorizontalTag}",
+                            Layer = activityDef.HorizontalTag,
+                            Dependencies = new List<ActivityDefinition>(),
+                            Function = function,
+                            Id = activityDef.Id
+                        };
+
+                        activity.ExecutionProfile.PP.Set(activityDef.Cpu);
+                        activity.ExecutionProfile.BP.Set(activityDef.BW);
+                        activity.ExecutionProfile.MP.Set(activityDef.Mem);
+
+                        function.Activities.Add(activity);
+                    };
+                }
+            }
+
+            var activities = system.Modules.SelectMany(m => m.Functions).SelectMany(f => f.Activities);
+
+            foreach (var activity in activities)
+            {
+                var deps = dependencies.ElementAt(systemComponents.IndexOf(systemComponents.First(s => s.Id == activity.Id)));
+                for (int depIndex = 0; depIndex < dependencies.Count; depIndex++)
+                {
+                    if (deps[depIndex])
+                    {
+                        activity.Dependencies.Add(activities.First(a => a.Id == depIndex + 1));
                     }
                 }
             }

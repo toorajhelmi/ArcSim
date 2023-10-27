@@ -2,12 +2,13 @@
 
 namespace Research.ArcSim.Modeling
 {
-    public enum Layer
+    public class Layer
     {
-        Client,
-        Presentation,
-        API,
-        DB
+        public const string Client = "Client";
+        public const string UI = "UI";
+        public const string API = "API";
+        public const string DB = "DB";
+        public const string Custom = "Custom";
     }
 
     /// <summary>
@@ -20,7 +21,7 @@ namespace Research.ArcSim.Modeling
         public string Name { get; set; }
         public string Description { get; set; }
         public Component Host { get; set; }
-        public Layer Layer { get; set; }
+        public string Layer { get; set; }
         public List<ActivityDefinition> Dependencies { get; set; } = new List<ActivityDefinition>();
         public ExecutionDemand ExecutionProfile { get; set; }
         public Function Function { get; set; }

@@ -106,7 +106,7 @@ namespace Research.ArcSim.Builders
 
             foreach (var ag in activityGroups)
             {
-                implementation.Components.Add(new AS.Component
+                implementation.Components.Add(new Component
                 {
                     Name = ag.Key.Name,
                     Activities = ag.ToList()
@@ -131,9 +131,9 @@ namespace Research.ArcSim.Builders
 
 			foreach (var ag in activityGroups)
 			{
-				implementation.Components.Add(new AS.Component
+				implementation.Components.Add(new Component
 				{
-					Name = Enum.GetName<Layer>(ag.Key),
+					Name = ag.Key,
 					Activities = ag.ToList()
 				});
 			}

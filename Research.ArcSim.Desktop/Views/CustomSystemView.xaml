@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<tk:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:tk="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+               x:Class="Research.ArcSim.Desktop.Views.CustomSystemView" VerticalOptions="Center" HorizontalOptions="Center"
+               >
+    <Grid Padding="5" WidthRequest="1500">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="700"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid BackgroundColor="DarkGray" Padding="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <HorizontalStackLayout>
+                    <Label Text="ID" WidthRequest="20" Margin="1"/>
+                    <Label Text="Component Name" WidthRequest="200" Margin="1"/>
+                    <Label Text="Layer" WidthRequest="100" Margin="1"/>
+                    <Label Text="Module" WidthRequest="100" Margin="1"/>
+                    <Label Text="CPU" WidthRequest="75" Margin="1"/>
+                    <Label Text="MEM" WidthRequest="75" Margin="1"/>
+                    <Label Text="BW" WidthRequest="75" Margin="1"/>
+                </HorizontalStackLayout>
+                <CollectionView Grid.Row="1" SelectionMode="None" ItemsSource="{Binding SystemComponents}"  HorizontalOptions="Start" VerticalOptions="Start" WidthRequest="700">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Stroke="Gray" StrokeThickness="0" HorizontalOptions="Start">
+                                <HorizontalStackLayout>
+                                    <Label Text="{Binding Id}" WidthRequest="20" FontSize="Medium" VerticalOptions="Start" Margin="1"/>
+                                    <Editor Text="{Binding Name}" WidthRequest="200" VerticalOptions="Start" BackgroundColor="Black" TextColor="White" Margin="1"/>
+                                    <!--<Editor Text="{Binding HorizontalTag}" WidthRequest="200" VerticalOptions="Center" BackgroundColor="LightGray" TextColor="Black" />
+                                    <Editor Text="{Binding VerticalTag}" WidthRequest="200" VerticalOptions="Center" BackgroundColor="LightGray" TextColor="Black"/>-->
+                                    <VerticalStackLayout WidthRequest="100" Margin="1">
+                                        <Picker Title="Select/Add" ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.HorizontalTagOptions}" SelectedItem="{Binding HorizontalTag}" HorizontalOptions="FillAndExpand"/>
+                                        <Editor Text="{Binding HorizontalTag}" HorizontalOptions="FillAndExpand" BackgroundColor="Black" TextColor="White"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout WidthRequest="100" Margin="1">
+                                        <Picker Title="Select/Add" ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.VerticalTagOptions}" SelectedItem="{Binding VerticalTag}" HorizontalOptions="FillAndExpand"/>
+                                        <Editor Text="{Binding VerticalTag}" BackgroundColor="Black" TextColor="White" HorizontalOptions="FillAndExpand"/>
+                                    </VerticalStackLayout>
+                                    <Picker WidthRequest="75" ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.DemandOptions}" SelectedItem="{Binding Cpu}" HorizontalOptions="FillAndExpand"/>
+                                    <Picker WidthRequest="75" ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.DemandOptions}" SelectedItem="{Binding Mem}" HorizontalOptions="FillAndExpand"/>
+                                    <Picker WidthRequest="75" ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, Path=BindingContext.DemandOptions}" SelectedItem="{Binding BW}" HorizontalOptions="FillAndExpand"/>
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Button Grid.Row="2" Text="Add Component" Command="{Binding AddSystemComponentCommand}" HorizontalOptions="Center" VerticalOptions="Start"/>
+            </Grid>
+            <Grid Margin="5,0,0,0" Padding="10" Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <CollectionView Grid.Column="1" ItemsSource="{Binding Indexes}" HeightRequest="45">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"/>
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Stroke="Gray" StrokeThickness="1" WidthRequest="46" HeightRequest="46">
+                                <Label Text="{Binding}" HorizontalOptions="Center" VerticalOptions="Center" TextColor="Black"/>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <CollectionView Grid.Row="1" ItemsSource="{Binding Indexes}" WidthRequest="46">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical"/>
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Stroke="Gray" StrokeThickness="1" WidthRequest="46" HeightRequest="46">
+                                <Label Text="{Binding}" HorizontalOptions="Center" VerticalOptions="Center" TextColor="Black"/>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <CollectionView Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Dependencies}">
+                     <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical"/>
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <CollectionView ItemsSource="{Binding}" HeightRequest="46">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Horizontal"/>
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Stroke="Gray" StrokeThickness="1" WidthRequest="46" HeightRequest="46">
+                                            <CheckBox IsChecked="{Binding}" HorizontalOptions="Center" VerticalOptions="Center" Color="Black"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="1" BackgroundColor="Black">
+            <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                <Button Text="Clear" Command="{Binding ClearCommand}" Margin="5"/>
+                <Button Text="Load Financial" Command="{Binding LoadFinancialCommand}" Margin="5"/>
+                <Button Text="Load Ecommerce" Command="{Binding LoadEcommerceCommand}" Margin="5"/>
+                <Button Text="Load Financial" Command="{Binding LoadFinancialCommand}" Margin="5"/>
+                <Button Text="Apply" Command="{Binding ApplySystemComponentCommand}" Clicked="Apply_Clicked" Margin="5"/>
+            </HorizontalStackLayout>
+        </Grid>
+    </Grid>
+</tk:Popup>
+

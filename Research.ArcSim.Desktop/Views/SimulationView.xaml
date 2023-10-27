@@ -22,48 +22,58 @@
                                 <Label Text="System Definition ▼" FontSize="Header" Padding="5"/>
                             </tk:Expander.Header>
                             <VerticalStackLayout>
-                                <StackLayout Margin="5">
-                                    <Label Text="System Size"/>
-                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding SystemSizeOptions}" BackgroundColor="LightGray" HeightRequest="40" SelectedItem="{Binding SelectedSystemSize, Mode=TwoWay}">
-                                        <CollectionView.ItemTemplate>
-                                            <DataTemplate>
-                                                <Label Text="{Binding}" TextColor="Black"   />
-                                            </DataTemplate>
-                                        </CollectionView.ItemTemplate>
-                                    </CollectionView>
-                                </StackLayout>
+                                <HorizontalStackLayout Margin="5">
+                                    <CheckBox IsChecked="{Binding UseCustomSystemDef}"/>
+                                    <Label Text="Custom System" VerticalOptions="Center"/>
+                                    <Button Text="Define Custom System" IsEnabled="{Binding UseCustomSystemDef}" Margin="10,0,0,0" Clicked="DefineCustom_Clicked"/>
+                                </HorizontalStackLayout>
+                                <Grid>
+                                    <VerticalStackLayout>
+                                        <StackLayout Margin="5">
+                                            <Label Text="System Size"/>
+                                            <CollectionView SelectionMode="Single" ItemsSource="{Binding SystemSizeOptions}" BackgroundColor="LightGray" HeightRequest="40" SelectedItem="{Binding SelectedSystemSize, Mode=TwoWay}">
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Label Text="{Binding}" TextColor="Black"   />
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </StackLayout>
 
-                                <StackLayout Margin="5">
-                                    <Label Text="Module Count"/>
-                                    <Editor Text="{Binding ModuleCount}" BackgroundColor="LightGray" TextColor="Black"/>
-                                </StackLayout>
+                                        <StackLayout Margin="5">
+                                            <Label Text="Module Count"/>
+                                            <Editor Text="{Binding ModuleCount}" BackgroundColor="LightGray" TextColor="Black"/>
+                                        </StackLayout>
 
-                                <StackLayout Margin="5">
-                                    <Label Text="Avg Function Per Module"/>
-                                    <Editor Text="{Binding AvgFunctionPerModule}" BackgroundColor="LightGray" TextColor="Black"/>
-                                </StackLayout>
+                                        <StackLayout Margin="5">
+                                            <Label Text="Avg Function Per Module"/>
+                                            <Editor Text="{Binding AvgFunctionPerModule}" BackgroundColor="LightGray" TextColor="Black"/>
+                                        </StackLayout>
 
-                                <StackLayout Margin="5">
-                                    <Label Text="Inter-modular Dependency"/>
-                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding DependencyOptions}" BackgroundColor="LightGray" HeightRequest="90" SelectedItem="{Binding InterModularDependency}">
-                                        <CollectionView.ItemTemplate>
-                                            <DataTemplate>
-                                                <Label Text="{Binding}" TextColor="Black"   />
-                                            </DataTemplate>
-                                        </CollectionView.ItemTemplate>
-                                    </CollectionView>
-                                </StackLayout>
+                                        <StackLayout Margin="5">
+                                            <Label Text="Inter-modular Dependency"/>
+                                            <CollectionView SelectionMode="Single" ItemsSource="{Binding DependencyOptions}" BackgroundColor="LightGray" HeightRequest="90" SelectedItem="{Binding InterModularDependency}">
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Label Text="{Binding}" TextColor="Black"   />
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </StackLayout>
 
-                                <StackLayout Margin="5">
-                                    <Label Text="Intra-modular Dependency"/>
-                                    <CollectionView SelectionMode="Single" ItemsSource="{Binding YesNoOptions}" BackgroundColor="LightGray" HeightRequest="40" SelectedItem="{Binding IntraModularDependency}">
-                                        <CollectionView.ItemTemplate>
-                                            <DataTemplate>
-                                                <Label Text="{Binding}" TextColor="Black"   />
-                                            </DataTemplate>
-                                        </CollectionView.ItemTemplate>
-                                    </CollectionView>
-                                </StackLayout>
+                                        <StackLayout Margin="5">
+                                            <Label Text="Intra-modular Dependency"/>
+                                            <CollectionView SelectionMode="Single" ItemsSource="{Binding YesNoOptions}" BackgroundColor="LightGray" HeightRequest="40" SelectedItem="{Binding IntraModularDependency}">
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Label Text="{Binding}" TextColor="Black"   />
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </StackLayout>
+                                    </VerticalStackLayout>
+                                    <Grid BackgroundColor="Black" Opacity="0.5" IsVisible="{Binding UseCustomSystemDef}" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand"/>
+                                 </Grid>
                             </VerticalStackLayout>
                         </tk:Expander>
 
